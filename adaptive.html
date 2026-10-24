@@ -14,7 +14,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background: #111;
+      background: #0a0a0a;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       user-select: none;
     }
@@ -39,26 +39,133 @@
       height: 100%;
       z-index: 5;
     }
-    /* Control Panel & HUD */
+
+    /* Initial Setup Modal */
+    #patientModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(10, 10, 10, 0.96);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    .modal-card {
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 24px 20px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    .modal-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .modal-desc {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+    .modal-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #ff9800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+    .sex-select-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .sex-card-btn {
+      flex: 1;
+      background: #252525;
+      border: 2px solid #3a3a3a;
+      border-radius: 12px;
+      padding: 16px 8px;
+      color: #ddd;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .sex-card-btn.selected {
+      border-color: #0288d1;
+      background: rgba(2, 136, 209, 0.18);
+      color: #fff;
+    }
+    .sex-card-btn span.subtext {
+      font-size: 11px;
+      font-weight: normal;
+      color: #888;
+    }
+    .sex-card-btn.selected span.subtext {
+      color: #81d4fa;
+    }
+    .modal-select {
+      width: 100%;
+      background: #252525;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      margin-bottom: 24px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .start-btn {
+      width: 100%;
+      background: #ff9800;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 14px;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.35);
+    }
+
+    /* Top HUD */
     #topControls {
       position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
+      top: 10px;
+      left: 10px;
+      right: 10px;
       z-index: 10;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
-    .hud-box {
-      background: rgba(18, 18, 18, 0.88);
+    .hud-card {
+      background: rgba(18, 18, 18, 0.90);
       border: 1px solid #333;
-      border-radius: 10px;
-      padding: 10px 14px;
+      border-radius: 12px;
+      padding: 8px 12px;
+      color: #fff;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: #fff;
     }
     .hud-title {
       font-size: 13px;
@@ -72,31 +179,52 @@
       color: #aaa;
       margin-top: 2px;
     }
-    .selector-group {
+    .pill-group {
       display: flex;
-      background: #252525;
+      background: #222;
       border-radius: 20px;
       padding: 2px;
+      border: 1px solid #444;
     }
-    .selector-btn {
+    .pill-btn {
       background: transparent;
       border: none;
       color: #888;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 18px;
+      padding: 5px 12px;
+      border-radius: 16px;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
-    .selector-btn.active {
+    .pill-btn.active {
       background: #0288d1;
       color: #fff;
-      box-shadow: 0 2px 6px rgba(2, 136, 209, 0.4);
     }
+    .habitus-bar {
+      background: rgba(18, 18, 18, 0.90);
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ccc;
+      font-size: 11px;
+    }
+    .habitus-bar select {
+      background: #252525;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      outline: none;
+    }
+
+    /* Bottom Buttons */
     #bottomBar {
       position: absolute;
-      bottom: 24px;
+      bottom: 20px;
       left: 16px;
       right: 16px;
       z-index: 10;
@@ -108,9 +236,9 @@
       border-radius: 28px;
       font-size: 15px;
       font-weight: 700;
-      padding: 14px 20px;
+      padding: 13px 20px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     }
     #nextBtn {
       background: #ff9800;
@@ -120,23 +248,65 @@
     #resetBtn {
       background: #333;
       color: #eee;
-      width: 90px;
+      width: 85px;
     }
   </style>
 </head>
 <body>
 
+  <!-- Clinical Intake Screen -->
+  <div id="patientModal">
+    <div class="modal-card">
+      <div class="modal-title">Patient Calibration</div>
+      <div class="modal-desc">Select anatomical profile for lead trajectory and intercostal spacing.</div>
+
+      <div class="modal-label">Biological Profile</div>
+      <div class="sex-select-row">
+        <button type="button" class="sex-card-btn selected" id="optMale" onclick="selectInitialSex('male')">
+          Male
+          <span class="subtext">Standard 4th/5th ICS</span>
+        </button>
+        <button type="button" class="sex-card-btn" id="optFemale" onclick="selectInitialSex('female')">
+          Female
+          <span class="subtext">Inframammary Fold</span>
+        </button>
+      </div>
+
+      <div class="modal-label">Body Build / Habitus</div>
+      <select class="modal-select" id="initialBodySize">
+        <option value="slim">Slim / Pediatric (Narrow Chest)</option>
+        <option value="standard" selected>Standard Adult</option>
+        <option value="broad">Athletic / Broad Thorax</option>
+        <option value="heavy">High BMI / Expanded Thorax</option>
+      </select>
+
+      <button type="button" class="start-btn" onclick="startARGuide()">Start AR Placement</button>
+    </div>
+  </div>
+
+  <!-- AR Workspace -->
   <div id="stage">
     <div id="topControls">
-      <div class="hud-box">
+      <div class="hud-card">
         <div>
-          <div class="hud-title" id="hudLead">Tracking Torso...</div>
-          <div class="hud-subtitle" id="hudDetail">Stand so shoulders and chest are visible</div>
+          <div class="hud-title" id="hudLead">Tracking Patient...</div>
+          <div class="hud-subtitle" id="hudDetail">Center camera on shoulders & chest</div>
         </div>
-        <div class="selector-group">
-          <button class="selector-btn active" id="btnMale" onclick="setSex('male')">Male</button>
-          <button class="selector-btn" id="btnFemale" onclick="setSex('female')">Female</button>
+        <div class="pill-group">
+          <button class="pill-btn active" id="btnMale" onclick="setSex('male')">Male</button>
+          <button class="pill-btn" id="btnFemale" onclick="setSex('female')">Female</button>
         </div>
+      </div>
+
+      <div class="habitus-bar">
+        <span>Body Size:</span>
+        <select id="bodySize" onchange="updateHabitus(this.value)">
+          <option value="slim">Slim / Pediatric</option>
+          <option value="standard" selected>Standard Adult</option>
+          <option value="broad">Athletic / Broad Chest</option>
+          <option value="heavy">High BMI / Obese</option>
+        </select>
+        <span id="statusIndicator" style="margin-left: auto; color: #ff5722;">Searching...</span>
       </div>
     </div>
 
@@ -158,19 +328,66 @@
     const nextBtn = document.getElementById('nextBtn');
     const btnMale = document.getElementById('btnMale');
     const btnFemale = document.getElementById('btnFemale');
+    const optMale = document.getElementById('optMale');
+    const optFemale = document.getElementById('optFemale');
+    const patientModal = document.getElementById('patientModal');
+    const bodySizeSelect = document.getElementById('bodySize');
+    const initialBodySize = document.getElementById('initialBodySize');
+    const statusIndicator = document.getElementById('statusIndicator');
 
     const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
     let currentStep = 0;
-    let patientSex = "male"; // "male" or "female"
+    let patientSex = "male";
 
-    // Smoothed anatomical landmark state (low-pass filter)
-    const smoothed = {
-      lShoulder: null,
-      rShoulder: null,
-      lHip: null,
-      rHip: null
+    // Habitus scaling factors
+    let habitusConfig = {
+      lateralSpread: 1.0,
+      torsoDepthRatio: 1.0,
+      sternalGap: 0.12
     };
-    const ALPHA = 0.22;
+
+    function selectInitialSex(sex) {
+      patientSex = sex;
+      if (sex === 'male') {
+        optMale.classList.add('selected');
+        optFemale.classList.remove('selected');
+      } else {
+        optFemale.classList.add('selected');
+        optMale.classList.remove('selected');
+      }
+    }
+
+    function startARGuide() {
+      const selectedSize = initialBodySize.value;
+      bodySizeSelect.value = selectedSize;
+      updateHabitus(selectedSize);
+      setSex(patientSex);
+
+      // Hide modal and start camera engine
+      patientModal.style.display = 'none';
+      initVisionEngine();
+    }
+
+    function updateHabitus(size) {
+      if (size === 'slim') {
+        habitusConfig = { lateralSpread: 0.85, torsoDepthRatio: 0.92, sternalGap: 0.09 };
+      } else if (size === 'broad') {
+        habitusConfig = { lateralSpread: 1.15, torsoDepthRatio: 1.05, sternalGap: 0.14 };
+      } else if (size === 'heavy') {
+        habitusConfig = { lateralSpread: 1.30, torsoDepthRatio: 1.15, sternalGap: 0.16 };
+      } else {
+        habitusConfig = { lateralSpread: 1.0, torsoDepthRatio: 1.0, sternalGap: 0.12 };
+      }
+    }
+
+    // Smoothed body landmarks
+    const smoothed = {
+      rShoulder: null,
+      lShoulder: null,
+      rHip: null,
+      lHip: null
+    };
+    const ALPHA = 0.25;
 
     function setSex(sex) {
       patientSex = sex;
@@ -206,55 +423,32 @@
     function updateHUD() {
       if (currentStep < LEADS.length) {
         const lead = LEADS[currentStep];
-        let anatomicalNote = "";
-        
-        if (lead === "V1") anatomicalNote = "4th ICS, Right Sternal Border";
-        else if (lead === "V2") anatomicalNote = "4th ICS, Left Sternal Border";
-        else if (lead === "V4") anatomicalNote = patientSex === "female" ? "5th ICS (Inframammary Fold)" : "5th ICS, Mid-clavicular Line";
-        else if (lead === "V3") anatomicalNote = "Directly between V2 and V4";
-        else if (lead === "V5") anatomicalNote = "Horizontal to V4, Anterior Axillary";
-        else if (lead === "V6") anatomicalNote = "Horizontal to V4, Mid-Axillary Line";
-        else if (lead.endsWith("A")) anatomicalNote = `${lead === 'RA' ? 'Right' : 'Left'} Subclavicular / Shoulder`;
-        else if (lead.endsWith("L")) anatomicalNote = `${lead === 'RL' ? 'Right' : 'Left'} Lower Abdomen / Flank`;
+        let note = "";
+        if (lead === "V1") note = "4th ICS, Right Sternal Margin";
+        else if (lead === "V2") note = "4th ICS, Left Sternal Margin";
+        else if (lead === "V4") note = patientSex === "female" ? "5th ICS at Inframammary Crease" : "5th ICS, Mid-Clavicular Line";
+        else if (lead === "V3") note = "Halfway between V2 and V4";
+        else if (lead === "V5") note = "Horizontal with V4, Anterior Axillary Line";
+        else if (lead === "V6") note = "Horizontal with V4, Mid-Axillary Line";
+        else if (lead === "RA") note = "Right Infraclavicular Fossa";
+        else if (lead === "LA") note = "Left Infraclavicular Fossa";
+        else if (lead === "RL") note = "Right Lower Abdomen / Flank";
+        else if (lead === "LL") note = "Left Lower Abdomen / Flank";
 
         hudLead.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
-        hudDetail.innerText = anatomicalNote;
+        hudDetail.innerText = note;
         nextBtn.innerText = `Confirm ${lead}`;
         nextBtn.style.background = "#ff9800";
       } else {
-        hudLead.innerText = "Placement Complete";
-        hudDetail.innerText = "All 10 leads verified against anatomical anchors";
+        hudLead.innerText = "Placement Verified";
+        hudDetail.innerText = "All 10 electrodes adapted to body metrics";
         nextBtn.innerText = "Restart Test";
         nextBtn.style.background = "#4caf50";
       }
     }
     updateHUD();
 
-    // MediaPipe Pose initialization
-    const pose = new Pose({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-    });
-
-    pose.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-
-    pose.onResults(onPoseResults);
-
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await pose.send({ image: video });
-      },
-      facingMode: "environment",
-      width: 640,
-      height: 480
-    });
-    camera.start();
-
-    function smoothPoint(prev, target) {
+    function smoothPt(prev, target) {
       if (!prev) return { x: target.x, y: target.y };
       return {
         x: ALPHA * target.x + (1 - ALPHA) * prev.x,
@@ -262,109 +456,121 @@
       };
     }
 
+    function initVisionEngine() {
+      const pose = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
+
+      pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      pose.onResults(onPoseResults);
+
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await pose.send({ image: video });
+        },
+        facingMode: "environment",
+        width: 640,
+        height: 480
+      });
+      camera.start();
+    }
+
     function onPoseResults(results) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const w = canvas.width;
       const h = canvas.height;
 
-      let rShoulder, lShoulder, rHip, lHip;
+      let rs, ls, rh, lh;
 
-      // Check if torso landmarks are recognized (Landmarks 11, 12, 23, 24)
       if (results.poseLandmarks) {
+        statusIndicator.innerText = "Locked";
+        statusIndicator.style.color = "#4caf50";
+
         const lm = results.poseLandmarks;
         const rawRS = { x: lm[11].x * w, y: lm[11].y * h };
         const rawLS = { x: lm[12].x * w, y: lm[12].y * h };
         const rawRH = { x: lm[23].x * w, y: lm[23].y * h };
         const rawLH = { x: lm[24].x * w, y: lm[24].y * h };
 
-        smoothed.rShoulder = smoothPoint(smoothed.rShoulder, rawRS);
-        smoothed.lShoulder = smoothPoint(smoothed.lShoulder, rawLS);
-        smoothed.rHip = smoothPoint(smoothed.rHip, rawRH);
-        smoothed.lHip = smoothPoint(smoothed.lHip, rawLH);
+        smoothed.rShoulder = smoothPt(smoothed.rShoulder, rawRS);
+        smoothed.lShoulder = smoothPt(smoothed.lShoulder, rawLS);
+        smoothed.rHip = smoothPt(smoothed.rHip, rawRH);
+        smoothed.lHip = smoothPt(smoothed.lHip, rawLH);
 
-        rShoulder = smoothed.rShoulder;
-        lShoulder = smoothed.lShoulder;
-        rHip = smoothed.rHip;
-        lHip = smoothed.lHip;
+        rs = smoothed.rShoulder;
+        ls = smoothed.lShoulder;
+        rh = smoothed.rHip;
+        lh = smoothed.lHip;
       } else {
-        // Fallback bounding box if subject is partially obscured
-        rShoulder = { x: w * 0.30, y: h * 0.28 };
-        lShoulder = { x: w * 0.70, y: h * 0.28 };
-        rHip = { x: w * 0.35, y: h * 0.72 };
-        lHip = { x: w * 0.65, y: h * 0.72 };
+        statusIndicator.innerText = "Estimating...";
+        statusIndicator.style.color = "#ff9800";
+
+        rs = { x: w * 0.28, y: h * 0.26 };
+        ls = { x: w * 0.72, y: h * 0.26 };
+        rh = { x: w * 0.32, y: h * 0.72 };
+        lh = { x: w * 0.68, y: h * 0.72 };
       }
 
-      // Torso Anatomical Geometry Calculations
-      // Note: Rear camera looking at patient -> Screen Left = Patient Right (RS), Screen Right = Patient Left (LS)
-      const shoulderWidth = Math.hypot(lShoulder.x - rShoulder.x, lShoulder.y - rShoulder.y);
-      const sternumNotch = {
-        x: (rShoulder.x + lShoulder.x) / 2,
-        y: (rShoulder.y + lShoulder.y) / 2
-      };
+      // Clavicular Vector: U (horizontal across chest)
+      const uVec = { x: ls.x - rs.x, y: ls.y - rs.y };
+      const shoulderWidth = Math.hypot(uVec.x, uVec.y);
+      const uNorm = { x: uVec.x / shoulderWidth, y: uVec.y / shoulderWidth };
 
-      // Torso vector
-      const midHip = { x: (rHip.x + lHip.x) / 2, y: (rHip.y + lHip.y) / 2 };
-      const torsoHeight = Math.hypot(midHip.x - sternumNotch.x, midHip.y - sternumNotch.y);
+      // Sternal Midpoint
+      const sternalNotch = { x: (rs.x + ls.x) / 2, y: (rs.y + ls.y) / 2 };
 
-      // Sternal Angle (Angle of Louis) ~ 20% down from sternal notch
-      const sternalAngle = {
-        x: sternumNotch.x,
-        y: sternumNotch.y + torsoHeight * 0.20
-      };
+      // Pelvic Midpoint
+      const pelvicCenter = { x: (rh.x + lh.x) / 2, y: (rh.y + lh.y) / 2 };
 
-      // 4th Intercostal Space level (V1/V2 baseline) ~ 33% down the torso
-      const intercostal4Y = sternumNotch.y + torsoHeight * 0.33;
+      // Torso Vector: V (longitudinal spinal axis)
+      const vVec = { x: pelvicCenter.x - sternalNotch.x, y: pelvicCenter.y - sternalNotch.y };
+      const torsoHeight = Math.hypot(vVec.x, vVec.y) * habitusConfig.torsoDepthRatio;
+      const vNorm = { x: vVec.x / (torsoHeight || 1), y: vVec.y / (torsoHeight || 1) };
 
-      // Male vs. Female adaptive shift
-      // In females, V4-V6 must be lower and contoured along the inframammary boundary
-      const v4VerticalRatio = patientSex === "female" ? 0.48 : 0.44;
-      const lateralSpread = patientSex === "female" ? 1.08 : 1.00;
+      function getBodyPoint(uOffset, vOffset) {
+        return {
+          x: sternalNotch.x + (uNorm.x * uOffset * shoulderWidth) + (vNorm.x * vOffset * torsoHeight),
+          y: sternalNotch.y + (uNorm.y * uOffset * shoulderWidth) + (vNorm.y * vOffset * torsoHeight)
+        };
+      }
 
-      const intercostal5Y = sternumNotch.y + torsoHeight * v4VerticalRatio;
+      const spread = habitusConfig.lateralSpread;
+      const v4Longitudinal = patientSex === "female" ? 0.49 : 0.43;
+      const v4Lateral = (0.28 * spread) * (patientSex === "female" ? 1.08 : 1.0);
 
       const targets = {
-        // Limb leads placed subclavicular and lower abdominal for practical monitoring
-        "RA": { x: rShoulder.x + shoulderWidth * 0.05, y: rShoulder.y + torsoHeight * 0.10 },
-        "LA": { x: lShoulder.x - shoulderWidth * 0.05, y: lShoulder.y + torsoHeight * 0.10 },
-        "RL": { x: rHip.x, y: rHip.y - torsoHeight * 0.05 },
-        "LL": { x: lHip.x, y: lHip.y - torsoHeight * 0.05 },
+        "RA": getBodyPoint(-0.42, 0.08),
+        "LA": getBodyPoint(0.42, 0.08),
+        "RL": getBodyPoint(-0.25, 0.90),
+        "LL": getBodyPoint(0.25, 0.90),
 
-        // Precordial V1 (Patient Right) & V2 (Patient Left) at 4th ICS
-        "V1": { x: sternalAngle.x - shoulderWidth * 0.12, y: intercostal4Y },
-        "V2": { x: sternalAngle.x + shoulderWidth * 0.12, y: intercostal4Y },
-
-        // V4: 5th ICS at Mid-Clavicular Line
-        "V4": { x: sternalAngle.x + (shoulderWidth * 0.30 * lateralSpread), y: intercostal5Y }
+        "V1": getBodyPoint(-habitusConfig.sternalGap, 0.32),
+        "V2": getBodyPoint(habitusConfig.sternalGap, 0.32),
+        "V4": getBodyPoint(v4Lateral, v4Longitudinal)
       };
 
-      // V3: Equidistant midpoint between V2 and V4
       targets["V3"] = {
         x: (targets["V2"].x + targets["V4"].x) / 2,
         y: (targets["V2"].y + targets["V4"].y) / 2
       };
 
-      // V5: Anterior Axillary Line horizontally aligned with V4
-      targets["V5"] = {
-        x: targets["V4"].x + (shoulderWidth * 0.16 * lateralSpread),
-        y: targets["V4"].y
-      };
+      targets["V5"] = getBodyPoint(v4Lateral + (0.16 * spread), v4Longitudinal);
+      targets["V6"] = getBodyPoint(v4Lateral + (0.31 * spread), v4Longitudinal);
 
-      // V6: Mid-Axillary Line horizontally aligned with V4
-      targets["V6"] = {
-        x: targets["V5"].x + (shoulderWidth * 0.15 * lateralSpread),
-        y: targets["V4"].y
-      };
-
-      // Draw Anatomical Reference Skeleton (Subtle Guides)
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      // Anatomical reference skeleton
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      // Shoulder-to-shoulder
-      ctx.moveTo(rShoulder.x, rShoulder.y);
-      ctx.lineTo(lShoulder.x, lShoulder.y);
-      // Sternal centerline
-      ctx.moveTo(sternumNotch.x, sternumNotch.y);
-      ctx.lineTo(midHip.x, midHip.y);
+      ctx.moveTo(rs.x, rs.y);
+      ctx.lineTo(ls.x, ls.y);
+      ctx.moveTo(sternalNotch.x, sternalNotch.y);
+      ctx.lineTo(pelvicCenter.x, pelvicCenter.y);
       ctx.stroke();
 
       // Render Electrodes
@@ -372,7 +578,6 @@
         const pt = targets[name];
 
         if (idx < currentStep) {
-          // Placed
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
           ctx.fillStyle = '#4caf50';
@@ -381,7 +586,6 @@
           ctx.font = 'bold 12px Arial';
           ctx.fillText(`${name} ✓`, pt.x + 12, pt.y + 4);
         } else if (idx === currentStep) {
-          // Current Target (Active)
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, 18, 0, 2 * Math.PI);
           ctx.strokeStyle = '#ff9800';
@@ -395,9 +599,8 @@
 
           ctx.fillStyle = '#ffeb3b';
           ctx.font = 'bold 14px Arial';
-          ctx.fillText(`TARGET: ${name}`, pt.x + 22, pt.y + 5);
+          ctx.fillText(`PLACE ${name}`, pt.x + 22, pt.y + 5);
         } else {
-          // Upcoming
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
           ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
