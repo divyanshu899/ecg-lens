@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>ECG AR Mobile Guide</title>
+  <title>Dynamic ECG AR Placement Guide</title>
+
+  <!-- Real-time MediaPipe Vision libraries via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
+
   <style>
     body {
       margin: 0;
@@ -12,7 +17,7 @@
       background: #000;
       font-family: Arial, sans-serif;
     }
-    #videoContainer {
+    #container {
       position: relative;
       width: 100vw;
       height: 100vh;
@@ -36,15 +41,15 @@
     #topBar {
       position: absolute;
       top: 15px;
-      left: 12px;
-      right: 12px;
+      left: 10px;
+      right: 10px;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       z-index: 10;
     }
     #hud {
       flex-grow: 1;
-      background: rgba(20, 20, 20, 0.85);
+      background: rgba(15, 15, 15, 0.85);
       border-radius: 8px;
       padding: 10px;
       color: #ff9800;
@@ -52,15 +57,6 @@
       font-size: 14px;
       font-weight: bold;
       border: 1px solid #444;
-    }
-    #modeBtn {
-      background: #0288d1;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 0 10px;
-      font-size: 12px;
-      font-weight: bold;
     }
     #btnContainer {
       position: absolute;
@@ -95,15 +91,14 @@
 </head>
 <body>
 
-  <div id="videoContainer">
+  <div id="container">
     <div id="topBar">
-      <div id="hud">Align Subject's Torso</div>
-      <button id="modeBtn" onclick="toggleCamera()">Flip Cam</button>
+      <div id="hud">Detecting Body...</div>
     </div>
 
     <video id="webcam" playsinline autoplay muted></video>
     <canvas id="overlay"></canvas>
-    
+
     <div id="btnContainer">
       <button class="action" id="resetBtn" onclick="resetSteps()">Reset</button>
       <button class="action" id="nextBtn" onclick="nextStep()">Confirm Lead</button>
@@ -119,34 +114,17 @@
 
     const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
     let currentStep = 0;
-    let currentFacingMode = "environment"; // default to rear camera
 
-    function initCamera() {
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-      }
-      navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentFacingMode },
-        audio: false
-      }).then(stream => {
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          resizeCanvas();
-          requestAnimationFrame(renderLoop);
-        };
-      }).catch(err => alert("Camera permission error: " + err));
-    }
-
-    function toggleCamera() {
-      currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
-      initCamera();
-    }
+    // Smoothing state
+    let smoothX = null, smoothY = null, smoothScale = null;
+    const ALPHA = 0.25;
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
     function nextStep() {
       if (currentStep < LEADS.length) {
@@ -173,37 +151,86 @@
         nextBtn.innerText = "Complete";
       }
     }
-
-    initCamera();
     updateHUD();
 
-    function renderLoop() {
+    // Initialize MediaPipe Face Detection
+    const faceDetection = new FaceDetection({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+    });
+
+    faceDetection.setOptions({
+      model: 'short',
+      minDetectionConfidence: 0.5
+    });
+
+    faceDetection.onResults(onResults);
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await faceDetection.send({ image: video });
+      },
+      facingMode: "environment",
+      width: 640,
+      height: 480
+    });
+    camera.start();
+
+    function onResults(results) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const w = canvas.width;
       const h = canvas.height;
 
-      const centerX = w / 2;
-      const centerY = h * 0.42;
-      const scale = w * 0.40;
+      let rawX, rawY, rawScale;
 
-      // When looking at patient with rear camera:
-      // Patient's Right is Screen Left
-      // Patient's Left is Screen Right
+      if (results.detections && results.detections.length > 0) {
+        const bbox = results.detections[0].boundingBox;
+        const faceX = bbox.xCenter * w;
+        const faceY = bbox.yCenter * h;
+        const faceW = bbox.width * w;
+        const faceH = bbox.height * h;
+
+        // Dynamic torso projection anchored to detected face
+        rawScale = faceW * 2.2;
+        rawX = faceX;
+        rawY = faceY + faceH * 0.95;
+      } else {
+        rawX = w / 2;
+        rawY = h * 0.40;
+        rawScale = w * 0.38;
+      }
+
+      // Smooth out camera shake
+      if (smoothX === null) {
+        smoothX = rawX;
+        smoothY = rawY;
+        smoothScale = rawScale;
+      } else {
+        smoothX = ALPHA * rawX + (1 - ALPHA) * smoothX;
+        smoothY = ALPHA * rawY + (1 - ALPHA) * smoothY;
+        smoothScale = ALPHA * rawScale + (1 - ALPHA) * smoothScale;
+      }
+
+      const sternumX = smoothX;
+      const refY = smoothY + smoothScale * 0.35;
+      const scale = smoothScale;
+
+      // Patient Right = Screen Left | Patient Left = Screen Right
       const targets = {
-        "RA": { x: centerX - scale * 0.85, y: centerY + scale * 0.35 },
-        "RL": { x: centerX - scale * 0.45, y: centerY + scale * 0.90 },
-        "V1": { x: centerX - scale * 0.16, y: centerY },
+        "RA": { x: sternumX - scale * 0.85, y: refY + scale * 0.40 },
+        "RL": { x: sternumX - scale * 0.45, y: refY + scale * 0.90 },
+        "V1": { x: sternumX - scale * 0.16, y: refY },
 
-        "LA": { x: centerX + scale * 0.85, y: centerY + scale * 0.35 },
-        "LL": { x: centerX + scale * 0.45, y: centerY + scale * 0.90 },
-        "V2": { x: centerX + scale * 0.16, y: centerY },
-        "V4": { x: centerX + scale * 0.42, y: centerY + scale * 0.22 },
+        "LA": { x: sternumX + scale * 0.85, y: refY + scale * 0.40 },
+        "LL": { x: sternumX + scale * 0.45, y: refY + scale * 0.90 },
+        "V2": { x: sternumX + scale * 0.16, y: refY },
+        "V4": { x: sternumX + scale * 0.42, y: refY + scale * 0.22 },
       };
 
       targets["V3"] = { x: (targets["V2"].x + targets["V4"].x) / 2, y: (targets["V2"].y + targets["V4"].y) / 2 };
       targets["V5"] = { x: targets["V4"].x + scale * 0.18, y: targets["V4"].y };
       targets["V6"] = { x: targets["V5"].x + scale * 0.16, y: targets["V4"].y };
 
+      // Render Leads
       LEADS.forEach((name, index) => {
         const pt = targets[name];
 
@@ -241,8 +268,6 @@
           ctx.fillText(name, pt.x + 8, pt.y + 4);
         }
       });
-
-      requestAnimationFrame(renderLoop);
     }
   </script>
 </body>
