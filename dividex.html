@@ -115,7 +115,6 @@
     const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
     let currentStep = 0;
 
-    // Smoothing state
     let smoothX = null, smoothY = null, smoothScale = null;
     const ALPHA = 0.25;
 
@@ -153,7 +152,6 @@
     }
     updateHUD();
 
-    // Initialize MediaPipe Face Detection
     const faceDetection = new FaceDetection({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
     });
@@ -189,7 +187,6 @@
         const faceW = bbox.width * w;
         const faceH = bbox.height * h;
 
-        // Dynamic torso projection anchored to detected face
         rawScale = faceW * 2.2;
         rawX = faceX;
         rawY = faceY + faceH * 0.95;
@@ -199,7 +196,6 @@
         rawScale = w * 0.38;
       }
 
-      // Smooth out camera shake
       if (smoothX === null) {
         smoothX = rawX;
         smoothY = rawY;
@@ -214,7 +210,6 @@
       const refY = smoothY + smoothScale * 0.35;
       const scale = smoothScale;
 
-      // Patient Right = Screen Left | Patient Left = Screen Right
       const targets = {
         "RA": { x: sternumX - scale * 0.85, y: refY + scale * 0.40 },
         "RL": { x: sternumX - scale * 0.45, y: refY + scale * 0.90 },
@@ -230,7 +225,6 @@
       targets["V5"] = { x: targets["V4"].x + scale * 0.18, y: targets["V4"].y };
       targets["V6"] = { x: targets["V5"].x + scale * 0.16, y: targets["V4"].y };
 
-      // Render Leads
       LEADS.forEach((name, index) => {
         const pt = targets[name];
 
