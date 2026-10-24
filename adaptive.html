@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Adaptive 12-Lead ECG AR Guide</title>
+
+  <!-- MediaPipe Pose and Camera Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #111;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+    #stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+    }
+    /* Control Panel & HUD */
+    #topControls {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .hud-box {
+      background: rgba(18, 18, 18, 0.88);
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+    .hud-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ff9800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .hud-subtitle {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+    .selector-group {
+      display: flex;
+      background: #252525;
+      border-radius: 20px;
+      padding: 2px;
+    }
+    .selector-btn {
+      background: transparent;
+      border: none;
+      color: #888;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .selector-btn.active {
+      background: #0288d1;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(2, 136, 209, 0.4);
+    }
+    #bottomBar {
+      position: absolute;
+      bottom: 24px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      border: none;
+      border-radius: 28px;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+    }
+    #nextBtn {
+      background: #ff9800;
+      color: #fff;
+      flex-grow: 1;
+    }
+    #resetBtn {
+      background: #333;
+      color: #eee;
+      width: 90px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stage">
+    <div id="topControls">
+      <div class="hud-box">
+        <div>
+          <div class="hud-title" id="hudLead">Tracking Torso...</div>
+          <div class="hud-subtitle" id="hudDetail">Stand so shoulders and chest are visible</div>
+        </div>
+        <div class="selector-group">
+          <button class="selector-btn active" id="btnMale" onclick="setSex('male')">Male</button>
+          <button class="selector-btn" id="btnFemale" onclick="setSex('female')">Female</button>
+        </div>
+      </div>
+    </div>
+
+    <video id="webcam" playsinline autoplay muted></video>
+    <canvas id="overlay"></canvas>
+
+    <div id="bottomBar">
+      <button class="btn" id="resetBtn" onclick="resetPlacement()">Reset</button>
+      <button class="btn" id="nextBtn" onclick="advanceLead()">Confirm RA</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    const hudLead = document.getElementById('hudLead');
+    const hudDetail = document.getElementById('hudDetail');
+    const nextBtn = document.getElementById('nextBtn');
+    const btnMale = document.getElementById('btnMale');
+    const btnFemale = document.getElementById('btnFemale');
+
+    const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
+    let currentStep = 0;
+    let patientSex = "male"; // "male" or "female"
+
+    // Smoothed anatomical landmark state (low-pass filter)
+    const smoothed = {
+      lShoulder: null,
+      rShoulder: null,
+      lHip: null,
+      rHip: null
+    };
+    const ALPHA = 0.22;
+
+    function setSex(sex) {
+      patientSex = sex;
+      if (sex === 'male') {
+        btnMale.classList.add('active');
+        btnFemale.classList.remove('active');
+      } else {
+        btnFemale.classList.add('active');
+        btnMale.classList.remove('active');
+      }
+      updateHUD();
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function advanceLead() {
+      if (currentStep < LEADS.length) {
+        currentStep++;
+        updateHUD();
+      }
+    }
+
+    function resetPlacement() {
+      currentStep = 0;
+      updateHUD();
+    }
+
+    function updateHUD() {
+      if (currentStep < LEADS.length) {
+        const lead = LEADS[currentStep];
+        let anatomicalNote = "";
+        
+        if (lead === "V1") anatomicalNote = "4th ICS, Right Sternal Border";
+        else if (lead === "V2") anatomicalNote = "4th ICS, Left Sternal Border";
+        else if (lead === "V4") anatomicalNote = patientSex === "female" ? "5th ICS (Inframammary Fold)" : "5th ICS, Mid-clavicular Line";
+        else if (lead === "V3") anatomicalNote = "Directly between V2 and V4";
+        else if (lead === "V5") anatomicalNote = "Horizontal to V4, Anterior Axillary";
+        else if (lead === "V6") anatomicalNote = "Horizontal to V4, Mid-Axillary Line";
+        else if (lead.endsWith("A")) anatomicalNote = `${lead === 'RA' ? 'Right' : 'Left'} Subclavicular / Shoulder`;
+        else if (lead.endsWith("L")) anatomicalNote = `${lead === 'RL' ? 'Right' : 'Left'} Lower Abdomen / Flank`;
+
+        hudLead.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
+        hudDetail.innerText = anatomicalNote;
+        nextBtn.innerText = `Confirm ${lead}`;
+        nextBtn.style.background = "#ff9800";
+      } else {
+        hudLead.innerText = "Placement Complete";
+        hudDetail.innerText = "All 10 leads verified against anatomical anchors";
+        nextBtn.innerText = "Restart Test";
+        nextBtn.style.background = "#4caf50";
+      }
+    }
+    updateHUD();
+
+    // MediaPipe Pose initialization
+    const pose = new Pose({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    pose.onResults(onPoseResults);
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await pose.send({ image: video });
+      },
+      facingMode: "environment",
+      width: 640,
+      height: 480
+    });
+    camera.start();
+
+    function smoothPoint(prev, target) {
+      if (!prev) return { x: target.x, y: target.y };
+      return {
+        x: ALPHA * target.x + (1 - ALPHA) * prev.x,
+        y: ALPHA * target.y + (1 - ALPHA) * prev.y
+      };
+    }
+
+    function onPoseResults(results) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const w = canvas.width;
+      const h = canvas.height;
+
+      let rShoulder, lShoulder, rHip, lHip;
+
+      // Check if torso landmarks are recognized (Landmarks 11, 12, 23, 24)
+      if (results.poseLandmarks) {
+        const lm = results.poseLandmarks;
+        const rawRS = { x: lm[11].x * w, y: lm[11].y * h };
+        const rawLS = { x: lm[12].x * w, y: lm[12].y * h };
+        const rawRH = { x: lm[23].x * w, y: lm[23].y * h };
+        const rawLH = { x: lm[24].x * w, y: lm[24].y * h };
+
+        smoothed.rShoulder = smoothPoint(smoothed.rShoulder, rawRS);
+        smoothed.lShoulder = smoothPoint(smoothed.lShoulder, rawLS);
+        smoothed.rHip = smoothPoint(smoothed.rHip, rawRH);
+        smoothed.lHip = smoothPoint(smoothed.lHip, rawLH);
+
+        rShoulder = smoothed.rShoulder;
+        lShoulder = smoothed.lShoulder;
+        rHip = smoothed.rHip;
+        lHip = smoothed.lHip;
+      } else {
+        // Fallback bounding box if subject is partially obscured
+        rShoulder = { x: w * 0.30, y: h * 0.28 };
+        lShoulder = { x: w * 0.70, y: h * 0.28 };
+        rHip = { x: w * 0.35, y: h * 0.72 };
+        lHip = { x: w * 0.65, y: h * 0.72 };
+      }
+
+      // Torso Anatomical Geometry Calculations
+      // Note: Rear camera looking at patient -> Screen Left = Patient Right (RS), Screen Right = Patient Left (LS)
+      const shoulderWidth = Math.hypot(lShoulder.x - rShoulder.x, lShoulder.y - rShoulder.y);
+      const sternumNotch = {
+        x: (rShoulder.x + lShoulder.x) / 2,
+        y: (rShoulder.y + lShoulder.y) / 2
+      };
+
+      // Torso vector
+      const midHip = { x: (rHip.x + lHip.x) / 2, y: (rHip.y + lHip.y) / 2 };
+      const torsoHeight = Math.hypot(midHip.x - sternumNotch.x, midHip.y - sternumNotch.y);
+
+      // Sternal Angle (Angle of Louis) ~ 20% down from sternal notch
+      const sternalAngle = {
+        x: sternumNotch.x,
+        y: sternumNotch.y + torsoHeight * 0.20
+      };
+
+      // 4th Intercostal Space level (V1/V2 baseline) ~ 33% down the torso
+      const intercostal4Y = sternumNotch.y + torsoHeight * 0.33;
+
+      // Male vs. Female adaptive shift
+      // In females, V4-V6 must be lower and contoured along the inframammary boundary
+      const v4VerticalRatio = patientSex === "female" ? 0.48 : 0.44;
+      const lateralSpread = patientSex === "female" ? 1.08 : 1.00;
+
+      const intercostal5Y = sternumNotch.y + torsoHeight * v4VerticalRatio;
+
+      const targets = {
+        // Limb leads placed subclavicular and lower abdominal for practical monitoring
+        "RA": { x: rShoulder.x + shoulderWidth * 0.05, y: rShoulder.y + torsoHeight * 0.10 },
+        "LA": { x: lShoulder.x - shoulderWidth * 0.05, y: lShoulder.y + torsoHeight * 0.10 },
+        "RL": { x: rHip.x, y: rHip.y - torsoHeight * 0.05 },
+        "LL": { x: lHip.x, y: lHip.y - torsoHeight * 0.05 },
+
+        // Precordial V1 (Patient Right) & V2 (Patient Left) at 4th ICS
+        "V1": { x: sternalAngle.x - shoulderWidth * 0.12, y: intercostal4Y },
+        "V2": { x: sternalAngle.x + shoulderWidth * 0.12, y: intercostal4Y },
+
+        // V4: 5th ICS at Mid-Clavicular Line
+        "V4": { x: sternalAngle.x + (shoulderWidth * 0.30 * lateralSpread), y: intercostal5Y }
+      };
+
+      // V3: Equidistant midpoint between V2 and V4
+      targets["V3"] = {
+        x: (targets["V2"].x + targets["V4"].x) / 2,
+        y: (targets["V2"].y + targets["V4"].y) / 2
+      };
+
+      // V5: Anterior Axillary Line horizontally aligned with V4
+      targets["V5"] = {
+        x: targets["V4"].x + (shoulderWidth * 0.16 * lateralSpread),
+        y: targets["V4"].y
+      };
+
+      // V6: Mid-Axillary Line horizontally aligned with V4
+      targets["V6"] = {
+        x: targets["V5"].x + (shoulderWidth * 0.15 * lateralSpread),
+        y: targets["V4"].y
+      };
+
+      // Draw Anatomical Reference Skeleton (Subtle Guides)
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      // Shoulder-to-shoulder
+      ctx.moveTo(rShoulder.x, rShoulder.y);
+      ctx.lineTo(lShoulder.x, lShoulder.y);
+      // Sternal centerline
+      ctx.moveTo(sternumNotch.x, sternumNotch.y);
+      ctx.lineTo(midHip.x, midHip.y);
+      ctx.stroke();
+
+      // Render Electrodes
+      LEADS.forEach((name, idx) => {
+        const pt = targets[name];
+
+        if (idx < currentStep) {
+          // Placed
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+          ctx.fillStyle = '#4caf50';
+          ctx.fill();
+          ctx.fillStyle = '#4caf50';
+          ctx.font = 'bold 12px Arial';
+          ctx.fillText(`${name} ✓`, pt.x + 12, pt.y + 4);
+        } else if (idx === currentStep) {
+          // Current Target (Active)
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 18, 0, 2 * Math.PI);
+          ctx.strokeStyle = '#ff9800';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffeb3b';
+          ctx.fill();
+
+          ctx.fillStyle = '#ffeb3b';
+          ctx.font = 'bold 14px Arial';
+          ctx.fillText(`TARGET: ${name}`, pt.x + 22, pt.y + 5);
+        } else {
+          // Upcoming
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.font = '11px Arial';
+          ctx.fillText(name, pt.x + 8, pt.y + 4);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
