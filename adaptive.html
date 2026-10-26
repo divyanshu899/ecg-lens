@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Adaptive 12-Lead ECG AR Guide</title>
 
   <!-- MediaPipe Pose and Camera Engine -->
@@ -10,6 +10,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
     body {
       margin: 0;
       padding: 0;
@@ -17,11 +21,13 @@
       background: #0a0a0a;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       user-select: none;
+      -webkit-user-select: none;
     }
     #stage {
       position: relative;
       width: 100vw;
       height: 100vh;
+      overflow: hidden;
     }
     video {
       position: absolute;
@@ -40,36 +46,35 @@
       z-index: 5;
     }
 
-    /* Initial Setup Modal */
+    /* Modal Overlay - Elevated to highest layer with explicit pointer events */
     #patientModal {
       position: fixed;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100vw;
-      height: 100%;
       height: 100dvh;
       background: rgba(10, 10, 10, 0.96);
-      z-index: 50;
+      z-index: 99999;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
       align-items: center;
-      padding: 16px 12px;
+      padding: 20px 16px 40px;
       overflow-y: auto;
-      box-sizing: border-box;
+      pointer-events: auto;
       -webkit-overflow-scrolling: touch;
     }
     .modal-card {
       background: #181818;
       border: 1px solid #333;
       border-radius: 16px;
-      padding: 18px 16px;
+      padding: 20px 16px;
       width: 100%;
       max-width: 360px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
       text-align: center;
       margin: auto 0;
-      box-sizing: border-box;
+      position: relative;
+      pointer-events: auto;
     }
     .modal-title {
       font-size: 19px;
@@ -80,7 +85,7 @@
     .modal-desc {
       font-size: 13px;
       color: #aaa;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       line-height: 1.4;
     }
     .modal-label {
@@ -95,27 +100,26 @@
     .sex-select-row {
       display: flex;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
     .sex-card-btn {
       flex: 1;
       background: #252525;
       border: 2px solid #3a3a3a;
       border-radius: 12px;
-      padding: 16px 8px;
+      padding: 14px 6px;
       color: #ddd;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.2s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
     .sex-card-btn.selected {
       border-color: #0288d1;
-      background: rgba(2, 136, 209, 0.18);
+      background: rgba(2, 136, 209, 0.22);
       color: #fff;
     }
     .sex-card-btn span.subtext {
@@ -134,9 +138,8 @@
       border-radius: 10px;
       padding: 12px;
       font-size: 14px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       outline: none;
-      box-sizing: border-box;
     }
     .start-btn {
       width: 100%;
@@ -144,11 +147,17 @@
       color: #fff;
       font-size: 16px;
       font-weight: 700;
-      padding: 14px;
+      padding: 16px;
       border: none;
       border-radius: 30px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.35);
+      display: block;
+      touch-action: manipulation;
+      box-shadow: 0 4px 14px rgba(255, 152, 0, 0.4);
+    }
+    .start-btn:active {
+      transform: scale(0.98);
+      background: #f57c00;
     }
 
     /* Top HUD */
@@ -161,6 +170,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      pointer-events: auto;
     }
     .hud-card {
       background: rgba(18, 18, 19, 0.92);
@@ -250,7 +260,7 @@
     /* Floating Chat Pill */
     #chatToggleBtn {
       position: absolute;
-      bottom: 80px;
+      bottom: 82px;
       right: 16px;
       z-index: 15;
       background: rgba(2, 136, 209, 0.95);
@@ -276,6 +286,7 @@
       z-index: 10;
       display: flex;
       gap: 12px;
+      pointer-events: auto;
     }
     .btn {
       border: none;
@@ -308,7 +319,7 @@
       background: #181818;
       border-top: 2px solid #333;
       border-radius: 20px 20px 0 0;
-      z-index: 40;
+      z-index: 9999;
       transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
@@ -381,10 +392,6 @@
       white-space: nowrap;
       cursor: pointer;
     }
-    .chip:active {
-      background: #0288d1;
-      color: #fff;
-    }
     .chat-input-bar {
       display: flex;
       padding: 8px 12px 14px;
@@ -444,7 +451,7 @@
         <option value="heavy">High BMI / Expanded Thorax</option>
       </select>
 
-      <button type="button" class="start-btn" onclick="startARGuide()">Start AR Placement</button>
+      <button type="button" class="start-btn" id="modalStartBtn">Start AR Placement</button>
     </div>
   </div>
 
@@ -472,8 +479,8 @@
         </select>
 
         <div class="mic-indicator">
-          <div class="mic-dot active" id="micDot"></div>
-          <span id="micLabel">Voice Active</span>
+          <div class="mic-dot" id="micDot"></div>
+          <span id="micLabel">Voice Standby</span>
         </div>
 
         <span id="statusIndicator" style="margin-left: auto; color: #ff5722;">Searching...</span>
@@ -483,7 +490,6 @@
     <video id="webcam" playsinline autoplay muted></video>
     <canvas id="overlay"></canvas>
 
-    <!-- Floating Chat Trigger -->
     <button id="chatToggleBtn" onclick="toggleChat()">💬 Ask Guide</button>
 
     <div id="bottomBar">
@@ -492,7 +498,6 @@
     </div>
   </div>
 
-  <!-- Interactive Clinical Chat Drawer -->
   <div id="chatDrawer">
     <div class="chat-header">
       <div class="chat-title">LeadLens Clinical Assistant</div>
@@ -504,7 +509,6 @@
       </div>
     </div>
 
-    <!-- Quick Question Chips -->
     <div class="quick-prompts">
       <div class="chip" onclick="askPreset('Where is the Angle of Louis?')">Angle of Louis?</div>
       <div class="chip" onclick="askPreset('How to place leads on female anatomy?')">Female / Breast tissue?</div>
@@ -530,6 +534,7 @@
     const optMale = document.getElementById('optMale');
     const optFemale = document.getElementById('optFemale');
     const patientModal = document.getElementById('patientModal');
+    const modalStartBtn = document.getElementById('modalStartBtn');
     const bodySizeSelect = document.getElementById('bodySize');
     const initialBodySize = document.getElementById('initialBodySize');
     const statusIndicator = document.getElementById('statusIndicator');
@@ -561,16 +566,39 @@
     }
 
     function startARGuide() {
-      const selectedSize = initialBodySize.value;
-      bodySizeSelect.value = selectedSize;
+      // Hide modal immediately so UI is responsive
+      patientModal.style.display = 'none';
+
+      const selectedSize = initialBodySize ? initialBodySize.value : 'standard';
+      if (bodySizeSelect) bodySizeSelect.value = selectedSize;
       updateHabitus(selectedSize);
       setSex(patientSex);
 
-      patientModal.style.display = 'none';
-      initVisionEngine();
-      initVoiceRecognition();
-      speakLeadGuidance(true);
+      try {
+        initVisionEngine();
+      } catch (e) {
+        console.error("Camera init error:", e);
+      }
+
+      try {
+        initVoiceRecognition();
+      } catch (e) {
+        console.warn("Speech recognition skipped:", e);
+      }
+
+      try {
+        speakLeadGuidance(true);
+      } catch (e) {
+        console.warn("TTS error:", e);
+      }
     }
+
+    // Explicit dual binding for mobile browsers
+    modalStartBtn.addEventListener('click', startARGuide);
+    modalStartBtn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      startARGuide();
+    });
 
     function updateHabitus(size) {
       if (size === 'slim') {
@@ -660,28 +688,4 @@
         nextBtn.style.background = "#ff9800";
       } else {
         hudLead.innerText = "Placement Verified";
-        hudDetail.innerText = "All 10 electrodes adapted to body metrics";
-        nextBtn.innerText = "Restart Test";
-        nextBtn.style.background = "#4caf50";
-      }
-    }
-    updateHUD();
-
-    /* Voice Synthesis (Audio Out) */
-    function speak(text) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
-
-    function speakLeadGuidance(isInitial = false) {
-      if (currentStep < LEADS.length) {
-        const lead = LEADS[currentStep];
-        const instruction = getLeadInstruction(lead);
-        speak(isInitial ? `Starting placement. First: ${instruction}` : instruction);
-      } else {
-        speak("All ten leads verified and placed successfully.");
-      }
+        hudDetail.innerText = "All 10 electrodes adapted to
