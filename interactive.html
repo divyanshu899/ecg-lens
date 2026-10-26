@@ -509,22 +509,25 @@
       };
     }
 
-    function buildLeadMap(centerX, centerY, chestWidth, torsoHeight, adjustX = 0) {
-      const sternalX = centerX + adjustX;
-      const clavicleY = centerY - torsoHeight * 0.20;
-      const v4Y = centerY + torsoHeight * 0.08;
+    function buildLeadMap(centerX, centerY, chestWidth, torsoHeight) {
+      const sternumX = centerX;
+      const clavicleY = centerY - torsoHeight * 0.34;
+      const v4Y = centerY + torsoHeight * 0.10;
+      const sternalOffsetX = chestWidth * 0.12;
+      const armOffsetX = chestWidth * 0.22;
+      const lateralSpread = habitusConfig.lateralSpread || 1.0;
 
       return {
-        RA: { x: centerX - chestWidth * 0.58, y: clavicleY },
-        LA: { x: centerX + chestWidth * 0.58, y: clavicleY },
-        RL: { x: centerX - chestWidth * 0.38, y: centerY + torsoHeight * 0.78 },
-        LL: { x: centerX + chestWidth * 0.38, y: centerY + torsoHeight * 0.78 },
-        V1: { x: sternalX - chestWidth * 0.18, y: centerY - torsoHeight * 0.18 },
-        V2: { x: sternalX + chestWidth * 0.06, y: centerY - torsoHeight * 0.12 },
-        V3: { x: sternalX + chestWidth * 0.28, y: centerY + torsoHeight * 0.02 },
-        V4: { x: sternalX + chestWidth * 0.38, y: v4Y },
-        V5: { x: sternalX + chestWidth * 0.56, y: v4Y },
-        V6: { x: sternalX + chestWidth * 0.74, y: v4Y }
+        RA: { x: sternumX - armOffsetX * 1.15, y: clavicleY },
+        LA: { x: sternumX + armOffsetX * 1.15, y: clavicleY },
+        RL: { x: sternumX - chestWidth * 0.32 * lateralSpread, y: centerY + torsoHeight * 0.72 },
+        LL: { x: sternumX + chestWidth * 0.32 * lateralSpread, y: centerY + torsoHeight * 0.72 },
+        V1: { x: sternumX - sternalOffsetX, y: centerY - torsoHeight * 0.18 },
+        V2: { x: sternumX + sternalOffsetX * 0.75, y: centerY - torsoHeight * 0.10 },
+        V3: { x: sternumX + chestWidth * 0.18 * lateralSpread, y: centerY + torsoHeight * 0.02 },
+        V4: { x: sternumX + chestWidth * 0.34 * lateralSpread, y: v4Y },
+        V5: { x: sternumX + chestWidth * 0.56 * lateralSpread, y: v4Y },
+        V6: { x: sternumX + chestWidth * 0.74 * lateralSpread, y: v4Y }
       };
     }
 
@@ -570,15 +573,15 @@
 
       const centerX = (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4;
       const centerY = (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4;
-      const chestWidth = Math.abs(rightShoulder.x - leftShoulder.x) * 1.25;
-      const torsoHeight = Math.abs((leftHip.y + rightHip.y)/2 - (leftShoulder.y + rightShoulder.y)/2) * 1.7;
+      const chestWidth = Math.abs(rightShoulder.x - leftShoulder.x) * 1.35;
+      const torsoHeight = Math.abs((leftHip.y + rightHip.y) / 2 - (leftShoulder.y + rightShoulder.y) / 2) * 1.75;
 
       const torsoLeft = centerX - chestWidth * 0.60;
       const torsoRight = centerX + chestWidth * 0.60;
       const torsoTop = centerY - torsoHeight * 0.45;
       const torsoBottom = centerY + torsoHeight * 0.85;
 
-      const leadMap = buildLeadMap(centerX, centerY, chestWidth, torsoHeight, 0);
+      const leadMap = buildLeadMap(centerX, centerY, chestWidth, torsoHeight);
 
       Object.entries(leadMap).forEach(([label, point]) => {
         const clamped = clampPoint(point, torsoLeft + 18, torsoRight - 18, torsoTop + 18, torsoBottom - 18);
