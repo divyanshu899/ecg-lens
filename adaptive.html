@@ -31,20 +31,17 @@
       height: 100vh;
       overflow: hidden;
     }
-    video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    video,
     canvas {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    canvas {
       z-index: 5;
     }
 
@@ -65,6 +62,7 @@
       align-items: center;
       padding: 20px;
       overflow-y: auto;
+      pointer-events: auto;
     }
     .modal-card {
       background: #1e1e1e;
@@ -112,6 +110,7 @@
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
+      pointer-events: auto;
     }
     .sex-card-btn.selected {
       border-color: #0288d1;
@@ -141,6 +140,7 @@
       cursor: pointer;
       display: block;
       box-shadow: 0 4px 14px rgba(255, 152, 0, 0.4);
+      pointer-events: auto;
     }
 
     /* Top HUD */
@@ -153,6 +153,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      pointer-events: auto;
     }
     .hud-card {
       background: rgba(18, 18, 19, 0.92);
@@ -192,6 +193,7 @@
       padding: 5px 12px;
       border-radius: 16px;
       cursor: pointer;
+      pointer-events: auto;
     }
     .pill-btn.active {
       background: #0288d1;
@@ -233,6 +235,7 @@
       font-weight: 700;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       cursor: pointer;
+      pointer-events: auto;
     }
 
     /* Bottom Buttons */
@@ -244,6 +247,7 @@
       z-index: 10;
       display: flex;
       gap: 12px;
+      pointer-events: auto;
     }
     .btn {
       border: none;
@@ -253,6 +257,7 @@
       padding: 13px 20px;
       cursor: pointer;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      pointer-events: auto;
     }
     #nextBtn {
       background: #ff9800;
@@ -281,6 +286,7 @@
       display: flex;
       flex-direction: column;
       box-shadow: 0 -8px 24px rgba(0,0,0,0.7);
+      pointer-events: auto;
     }
     #chatDrawer.open {
       bottom: 0;
@@ -348,6 +354,7 @@
       font-size: 11px;
       white-space: nowrap;
       cursor: pointer;
+      pointer-events: auto;
     }
     .chat-input-bar {
       display: flex;
@@ -377,6 +384,7 @@
       justify-content: center;
       align-items: center;
       font-weight: bold;
+      pointer-events: auto;
     }
   </style>
 </head>
@@ -498,7 +506,6 @@
     }
 
     function startARGuide() {
-      // Direct modal dismissal guarantees instant response
       const modal = document.getElementById('patientModal');
       if (modal) modal.style.display = 'none';
 
@@ -509,7 +516,6 @@
       updateHabitus(selectedSize);
       setSex(patientSex);
 
-      // Launch camera & speech in isolated async tasks
       setTimeout(() => {
         try { initVisionEngine(); } catch(e) { console.error("Vision failed", e); }
         try { initVoiceRecognition(); } catch(e) { console.warn("Voice skipped", e); }
@@ -671,4 +677,88 @@
           } else if (transcript.includes("female")) {
             setSex('female');
             speak("Switched to female profile.");
-          } else if (transcript.include
+          } else if (transcript.includes("male")) {
+            setSex('male');
+            speak("Switched to male profile.");
+          }
+        };
+
+        recognition.start();
+      } catch (e) {
+        console.warn('Voice recognition failed', e);
+      }
+    }
+
+    function toggleChat() {
+      const drawer = document.getElementById('chatDrawer');
+      if (!drawer) return;
+      drawer.classList.toggle('open');
+    }
+
+    function askPreset(question) {
+      const input = document.getElementById('chatInput');
+      if (input) {
+        input.value = question;
+      }
+      sendChat();
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      const messages = document.getElementById('chatMessages');
+      if (!input || !messages) return;
+
+      const text = input.value.trim();
+      if (!text) return;
+
+      const userMsg = document.createElement('div');
+      userMsg.className = 'msg-user';
+      userMsg.textContent = text;
+      messages.appendChild(userMsg);
+
+      input.value = '';
+
+      const reply = document.createElement('div');
+      reply.className = 'msg-bot';
+      const lower = text.toLowerCase();
+      if (lower.includes('v3')) {
+        reply.innerHTML = 'V3 is placed midway between V2 and V4. It sits on the anterior chest, usually at the same horizontal level as V4.';
+      } else if (lower.includes('angle of louis') || lower.includes('sternal angle')) {
+        reply.innerHTML = 'The Angle of Louis is the palpable sternal angle at the manubriosternal junction, just below the clavicles. It helps identify the 2nd intercostal space.';
+      } else if (lower.includes('female') || lower.includes('breast')) {
+        reply.innerHTML = 'For female anatomy, place V4 in the 5th intercostal space within the inframammary fold and displace breast tissue gently rather than placing it on breast tissue.';
+      } else if (lower.includes('high bmi') || lower.includes('bmi')) {
+        reply.innerHTML = 'With high BMI, use the chest contour and palpation of the 5th intercostal space rather than relying on fixed landmarks alone. Allow for wider lateral spacing and a deeper torso estimate.';
+      } else if (lower.includes('next')) {
+        advanceLead();
+        reply.textContent = 'Proceeding to the next lead.';
+      } else if (lower.includes('repeat')) {
+        speakLeadGuidance();
+        reply.textContent = 'Repeating the current lead instruction.';
+      } else {
+        reply.textContent = 'Use the anatomical landmarks: sternal angle, 2nd intercostal space, midclavicular line, and the axillary lines to place each lead accurately.';
+      }
+
+      messages.appendChild(reply);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function initVisionEngine() {
+      const video = document.getElementById('webcam');
+      if (!video) return;
+
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false
+      }).then((stream) => {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+        };
+      }).catch((err) => {
+        console.warn('Camera unavailable', err);
+      });
+    }
+  </script>
+</body>
+</html>
