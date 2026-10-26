@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Adaptive 12-Lead ECG AR Guide</title>
 
   <!-- MediaPipe Pose and Camera Engine -->
@@ -12,139 +12,43 @@
   <style>
     * {
       box-sizing: border-box;
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      -webkit-tap-highlight-color: transparent;
     }
     html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #0a0a0a;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    #stage {
-      position: relative;
       width: 100vw;
       height: 100vh;
       overflow: hidden;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    video,
-    canvas {
+    #stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    video {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      pointer-events: none;
+      z-index: 1;
     }
     canvas {
-      z-index: 5;
-    }
-
-    /* Modal Overlay */
-    #patientModal {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
       width: 100%;
       height: 100%;
-      background: #111111;
-      z-index: 999999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      overflow-y: auto;
-      pointer-events: auto;
-    }
-    .modal-card {
-      background: #1e1e1e;
-      border: 1px solid #383838;
-      border-radius: 16px;
-      padding: 24px 20px;
-      width: 100%;
-      max-width: 360px;
-      text-align: center;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
-    }
-    .modal-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 6px;
-    }
-    .modal-desc {
-      font-size: 13px;
-      color: #aaa;
-      margin-bottom: 20px;
-      line-height: 1.4;
-    }
-    .modal-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: #ff9800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-      text-align: left;
-    }
-    .sex-select-row {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .sex-card-btn {
-      flex: 1;
-      background: #2a2a2a;
-      border: 2px solid #3e3e3e;
-      border-radius: 12px;
-      padding: 14px 8px;
-      color: #ddd;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      pointer-events: auto;
-    }
-    .sex-card-btn.selected {
-      border-color: #0288d1;
-      background: rgba(2, 136, 209, 0.25);
-      color: #fff;
-    }
-    .modal-select {
-      width: 100%;
-      background: #2a2a2a;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 10px;
-      padding: 12px;
-      font-size: 14px;
-      margin-bottom: 24px;
-      outline: none;
-    }
-    .start-btn {
-      width: 100%;
-      background: #ff9800;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      padding: 16px;
-      border: none;
-      border-radius: 30px;
-      cursor: pointer;
-      display: block;
-      box-shadow: 0 4px 14px rgba(255, 152, 0, 0.4);
-      pointer-events: auto;
+      z-index: 2;
+      pointer-events: none;
     }
 
     /* Top HUD */
-    #topControls {
+    #topBar {
       position: absolute;
       top: 10px;
       left: 10px;
@@ -153,11 +57,10 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      pointer-events: auto;
     }
-    .hud-card {
-      background: rgba(18, 18, 19, 0.92);
-      border: 1px solid #333;
+    .hud-box {
+      background: rgba(20, 20, 20, 0.88);
+      border: 1px solid #444;
       border-radius: 12px;
       padding: 8px 12px;
       color: #fff;
@@ -166,98 +69,47 @@
       align-items: center;
     }
     .hud-title {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 700;
       color: #ff9800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
-    .hud-subtitle {
+    .hud-sub {
       font-size: 11px;
       color: #aaa;
-      margin-top: 2px;
     }
-    .pill-group {
-      display: flex;
-      background: #222;
-      border-radius: 20px;
-      padding: 2px;
-      border: 1px solid #444;
-    }
-    .pill-btn {
-      background: transparent;
-      border: none;
-      color: #888;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 5px 12px;
+    .btn-toggle {
+      background: #333;
+      color: #bbb;
+      border: 1px solid #555;
       border-radius: 16px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
-      pointer-events: auto;
     }
-    .pill-btn.active {
+    .btn-toggle.active {
       background: #0288d1;
       color: #fff;
-    }
-    .habitus-bar {
-      background: rgba(18, 18, 18, 0.92);
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 6px 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #ccc;
-      font-size: 11px;
-    }
-    .habitus-bar select {
-      background: #252525;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 6px;
-      padding: 3px 8px;
-      font-size: 11px;
-      outline: none;
+      border-color: #0288d1;
     }
 
-    /* Floating Chat Pill */
-    #chatToggleBtn {
-      position: absolute;
-      bottom: 82px;
-      right: 16px;
-      z-index: 15;
-      background: rgba(2, 136, 209, 0.95);
-      color: #fff;
-      border: none;
-      border-radius: 24px;
-      padding: 8px 14px;
-      font-size: 12px;
-      font-weight: 700;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      cursor: pointer;
-      pointer-events: auto;
-    }
-
-    /* Bottom Buttons */
+    /* Bottom Control Bar */
     #bottomBar {
       position: absolute;
       bottom: 20px;
-      left: 16px;
-      right: 16px;
+      left: 14px;
+      right: 14px;
       z-index: 10;
       display: flex;
-      gap: 12px;
-      pointer-events: auto;
+      gap: 10px;
     }
-    .btn {
+    .action-btn {
       border: none;
       border-radius: 28px;
       font-size: 15px;
       font-weight: 700;
-      padding: 13px 20px;
+      padding: 14px 20px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-      pointer-events: auto;
     }
     #nextBtn {
       background: #ff9800;
@@ -265,500 +117,253 @@
       flex-grow: 1;
     }
     #resetBtn {
-      background: #333;
+      background: #2a2a2a;
       color: #eee;
-      width: 85px;
-    }
-
-    /* Chat Drawer */
-    #chatDrawer {
-      position: fixed;
-      bottom: -100%;
-      left: 0;
-      right: 0;
-      height: 60vh;
-      max-height: 480px;
-      background: #181818;
-      border-top: 2px solid #333;
-      border-radius: 20px 20px 0 0;
-      z-index: 9999;
-      transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 -8px 24px rgba(0,0,0,0.7);
-      pointer-events: auto;
-    }
-    #chatDrawer.open {
-      bottom: 0;
-    }
-    .chat-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid #2a2a2a;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #fff;
-    }
-    .chat-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #81d4fa;
-    }
-    .chat-close {
-      background: none;
-      border: none;
-      color: #aaa;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      font-size: 13px;
-    }
-    .msg-bot {
-      background: #252525;
-      color: #ddd;
-      border-radius: 12px 12px 12px 2px;
-      padding: 10px 12px;
-      max-width: 85%;
-      line-height: 1.4;
-    }
-    .msg-user {
-      background: #0288d1;
-      color: #fff;
-      border-radius: 12px 12px 2px 12px;
-      padding: 10px 12px;
-      max-width: 85%;
-      align-self: flex-end;
-      line-height: 1.4;
-    }
-    .quick-prompts {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding: 6px 12px;
-      background: #1c1c1c;
-      border-top: 1px solid #2a2a2a;
-    }
-    .chip {
-      background: #2b2b2b;
-      color: #bbb;
       border: 1px solid #444;
-      border-radius: 14px;
-      padding: 5px 10px;
-      font-size: 11px;
-      white-space: nowrap;
-      cursor: pointer;
-      pointer-events: auto;
-    }
-    .chat-input-bar {
-      display: flex;
-      padding: 8px 12px 14px;
-      gap: 8px;
-      background: #181818;
-    }
-    .chat-input-bar input {
-      flex: 1;
-      background: #252525;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 20px;
-      padding: 8px 14px;
-      font-size: 13px;
-      outline: none;
-    }
-    .chat-send-btn {
-      background: #0288d1;
-      border: none;
-      color: #fff;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
-      pointer-events: auto;
+      width: 80px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Clinical Intake Screen: Pure inline events to ensure instant clicks -->
-  <div id="patientModal">
-    <div class="modal-card">
-      <div class="modal-title">Patient Calibration</div>
-      <div class="modal-desc">Select anatomical profile for lead trajectory and intercostal spacing.</div>
-
-      <div class="modal-label">Biological Profile</div>
-      <div class="sex-select-row">
-        <button type="button" class="sex-card-btn selected" id="optMale" onclick="selectInitialSex('male')">
-          Male
-        </button>
-        <button type="button" class="sex-card-btn" id="optFemale" onclick="selectInitialSex('female')">
-          Female
-        </button>
-      </div>
-
-      <div class="modal-label">Body Build / Habitus</div>
-      <select class="modal-select" id="initialBodySize">
-        <option value="slim">Slim / Pediatric</option>
-        <option value="standard" selected>Standard Adult</option>
-        <option value="broad">Athletic / Broad Thorax</option>
-        <option value="heavy">High BMI / Expanded</option>
-      </select>
-
-      <button type="button" class="start-btn" onclick="startARGuide()">Start AR Placement</button>
-    </div>
-  </div>
-
-  <!-- AR Workspace -->
   <div id="stage">
-    <div id="topControls">
-      <div class="hud-card">
+    <div id="topBar">
+      <div class="hud-box">
         <div>
-          <div class="hud-title" id="hudLead">Tracking Patient...</div>
-          <div class="hud-subtitle" id="hudDetail">Center camera on shoulders & chest</div>
+          <div class="hud-title" id="leadName">Step 1/10: Lead RA</div>
+          <div class="hud-sub" id="leadDesc">Right Infraclavicular Fossa</div>
         </div>
-        <div class="pill-group">
-          <button class="pill-btn active" id="btnMale" onclick="setSex('male')">Male</button>
-          <button class="pill-btn" id="btnFemale" onclick="setSex('female')">Female</button>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn-toggle active" id="btnMale" onclick="toggleSex('male')">Male</button>
+          <button class="btn-toggle" id="btnFemale" onclick="toggleSex('female')">Female</button>
         </div>
-      </div>
-
-      <div class="habitus-bar">
-        <span>Build:</span>
-        <select id="bodySize" onchange="updateHabitus(this.value)">
-          <option value="slim">Slim / Pediatric</option>
-          <option value="standard" selected>Standard Adult</option>
-          <option value="broad">Athletic / Broad</option>
-          <option value="heavy">High BMI</option>
-        </select>
-        <span id="statusIndicator" style="margin-left: auto; color: #ff5722;">Searching...</span>
       </div>
     </div>
 
     <video id="webcam" playsinline autoplay muted></video>
     <canvas id="overlay"></canvas>
 
-    <button id="chatToggleBtn" onclick="toggleChat()">💬 Ask Guide</button>
-
     <div id="bottomBar">
-      <button class="btn" id="resetBtn" onclick="resetPlacement()">Reset</button>
-      <button class="btn" id="nextBtn" onclick="advanceLead()">Confirm RA</button>
-    </div>
-  </div>
-
-  <div id="chatDrawer">
-    <div class="chat-header">
-      <div class="chat-title">LeadLens Clinical Assistant</div>
-      <button class="chat-close" onclick="toggleChat()">✕</button>
-    </div>
-    <div class="chat-messages" id="chatMessages">
-      <div class="msg-bot">
-        Hello! I'm here to assist with 12-lead placement guidelines. You can also say <b>"Next"</b> or <b>"Repeat"</b> hands-free.
-      </div>
-    </div>
-
-    <div class="quick-prompts">
-      <div class="chip" onclick="askPreset('Where is the Angle of Louis?')">Angle of Louis?</div>
-      <div class="chip" onclick="askPreset('How to place leads on female anatomy?')">Female / Breast tissue?</div>
-      <div class="chip" onclick="askPreset('Where does V3 go?')">Where is V3?</div>
-      <div class="chip" onclick="askPreset('What if the patient has high BMI?')">High BMI tips?</div>
-    </div>
-
-    <div class="chat-input-bar">
-      <input type="text" id="chatInput" placeholder="Ask an anatomical question..." onkeydown="if(event.key==='Enter') sendChat()">
-      <button class="chat-send-btn" onclick="sendChat()">➤</button>
+      <button class="action-btn" id="resetBtn" onclick="resetLead()">Reset</button>
+      <button class="action-btn" id="nextBtn" onclick="nextLead()">Confirm RA</button>
     </div>
   </div>
 
   <script>
     const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
     let currentStep = 0;
-    let patientSex = "male";
+    let sexMode = "male";
 
-    let habitusConfig = {
-      lateralSpread: 1.0,
-      torsoDepthRatio: 1.0,
-      sternalGap: 0.12
-    };
-
-    function selectInitialSex(sex) {
-      patientSex = sex;
-      const optM = document.getElementById('optMale');
-      const optF = document.getElementById('optFemale');
-      if (optM && optF) {
-        if (sex === 'male') {
-          optM.classList.add('selected');
-          optF.classList.remove('selected');
-        } else {
-          optF.classList.add('selected');
-          optM.classList.remove('selected');
-        }
-      }
-    }
-
-    function startARGuide() {
-      const modal = document.getElementById('patientModal');
-      if (modal) modal.style.display = 'none';
-
-      const initSize = document.getElementById('initialBodySize');
-      const topSize = document.getElementById('bodySize');
-      const selectedSize = initSize ? initSize.value : 'standard';
-      if (topSize) topSize.value = selectedSize;
-      updateHabitus(selectedSize);
-      setSex(patientSex);
-
-      setTimeout(() => {
-        try { initVisionEngine(); } catch(e) { console.error("Vision failed", e); }
-        try { initVoiceRecognition(); } catch(e) { console.warn("Voice skipped", e); }
-        try { speakLeadGuidance(true); } catch(e) {}
-      }, 50);
-    }
-
-    function updateHabitus(size) {
-      if (size === 'slim') {
-        habitusConfig = { lateralSpread: 0.85, torsoDepthRatio: 0.92, sternalGap: 0.09 };
-      } else if (size === 'broad') {
-        habitusConfig = { lateralSpread: 1.15, torsoDepthRatio: 1.05, sternalGap: 0.14 };
-      } else if (size === 'heavy') {
-        habitusConfig = { lateralSpread: 1.30, torsoDepthRatio: 1.15, sternalGap: 0.16 };
-      } else {
-        habitusConfig = { lateralSpread: 1.0, torsoDepthRatio: 1.0, sternalGap: 0.12 };
-      }
-    }
-
-    const smoothed = { rShoulder: null, lShoulder: null, rHip: null, lHip: null };
-    const ALPHA = 0.25;
-
-    function setSex(sex) {
-      patientSex = sex;
-      const bM = document.getElementById('btnMale');
-      const bF = document.getElementById('btnFemale');
-      if (bM && bF) {
-        if (sex === 'male') {
-          bM.classList.add('active');
-          bF.classList.remove('active');
-        } else {
-          bF.classList.add('active');
-          bM.classList.remove('active');
-        }
-      }
-      updateHUD();
-    }
-
+    const video = document.getElementById('webcam');
     const canvas = document.getElementById('overlay');
-    const ctx = canvas ? canvas.getContext('2d') : null;
+    const ctx = canvas.getContext('2d');
+    const leadName = document.getElementById('leadName');
+    const leadDesc = document.getElementById('leadDesc');
+    const nextBtn = document.getElementById('nextBtn');
+    const btnMale = document.getElementById('btnMale');
+    const btnFemale = document.getElementById('btnFemale');
 
-    function resizeCanvas() {
-      if (!canvas) return;
+    function syncCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    window.addEventListener('resize', syncCanvas);
+    syncCanvas();
 
-    function advanceLead() {
-      if (currentStep < LEADS.length) {
-        currentStep++;
-        updateHUD();
-        speakLeadGuidance();
+    function toggleSex(mode) {
+      sexMode = mode;
+      if (mode === 'male') {
+        btnMale.classList.add('active');
+        btnFemale.classList.remove('active');
+      } else {
+        btnFemale.classList.add('active');
+        btnMale.classList.remove('active');
       }
+      updateUI();
     }
 
-    function resetPlacement() {
+    function nextLead() {
+      if (currentStep < LEADS.length - 1) {
+        currentStep++;
+      } else if (currentStep === LEADS.length - 1) {
+        currentStep++;
+      } else {
+        currentStep = 0;
+      }
+      updateUI();
+    }
+
+    function resetLead() {
       currentStep = 0;
-      updateHUD();
-      speak("Placement reset. First lead is Right Arm.");
+      updateUI();
     }
 
-    function getLeadInstruction(lead) {
-      if (lead === "V1") return "Place V1 at the 4th intercostal space, right sternal margin.";
-      if (lead === "V2") return "Place V2 at the 4th intercostal space, left sternal margin.";
-      if (lead === "V4") return patientSex === "female" ? "Place V4 at the 5th intercostal space in the inframammary fold, under breast tissue." : "Place V4 at the 5th intercostal space, mid-clavicular line.";
-      if (lead === "V3") return "Place V3 directly midway between V2 and V4.";
-      if (lead === "V5") return "Place V5 horizontal to V4, on the anterior axillary line.";
-      if (lead === "V6") return "Place V6 horizontal to V4, on the mid-axillary line.";
-      if (lead === "RA") return "Place Right Arm lead on the right infraclavicular area.";
-      if (lead === "LA") return "Place Left Arm lead on the left infraclavicular area.";
-      if (lead === "RL") return "Place Right Leg ground lead on the right lower abdomen.";
-      if (lead === "LL") return "Place Left Leg lead on the left lower abdomen.";
+    function getLeadText(lead) {
+      if (lead === "RA") return "Right Infraclavicular Fossa";
+      if (lead === "LA") return "Left Infraclavicular Fossa";
+      if (lead === "RL") return "Right Lower Abdomen / Flank";
+      if (lead === "LL") return "Left Lower Abdomen / Flank";
+      if (lead === "V1") return "4th Intercostal Space, Right Sternal Margin";
+      if (lead === "V2") return "4th Intercostal Space, Left Sternal Margin";
+      if (lead === "V4") return sexMode === "female" ? "5th ICS at Inframammary Crease" : "5th ICS, Mid-Clavicular Line";
+      if (lead === "V3") return "Midway between V2 and V4";
+      if (lead === "V5") return "Horizontal with V4, Anterior Axillary Line";
+      if (lead === "V6") return "Horizontal with V4, Mid-Axillary Line";
       return "";
     }
 
-    function updateHUD() {
-      const hudL = document.getElementById('hudLead');
-      const hudD = document.getElementById('hudDetail');
-      const nBtn = document.getElementById('nextBtn');
-
+    function updateUI() {
       if (currentStep < LEADS.length) {
         const lead = LEADS[currentStep];
-        let note = "";
-        if (lead === "V1") note = "4th ICS, Right Sternal Margin";
-        else if (lead === "V2") note = "4th ICS, Left Sternal Margin";
-        else if (lead === "V4") note = patientSex === "female" ? "5th ICS at Inframammary Crease" : "5th ICS, Mid-Clavicular Line";
-        else if (lead === "V3") note = "Halfway between V2 and V4";
-        else if (lead === "V5") note = "Horizontal with V4, Anterior Axillary Line";
-        else if (lead === "V6") note = "Horizontal with V4, Mid-Axillary Line";
-        else if (lead === "RA") note = "Right Infraclavicular Fossa";
-        else if (lead === "LA") note = "Left Infraclavicular Fossa";
-        else if (lead === "RL") note = "Right Lower Abdomen / Flank";
-        else if (lead === "LL") note = "Left Lower Abdomen / Flank";
+        leadName.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
+        leadDesc.innerText = getLeadText(lead);
+        nextBtn.innerText = `Confirm ${lead}`;
+        nextBtn.style.background = "#ff9800";
+      } else {
+        leadName.innerText = "Placement Complete";
+        leadDesc.innerText = "All 10 leads verified";
+        nextBtn.innerText = "Restart Test";
+        nextBtn.style.background = "#4caf50";
+      }
+    }
+    updateUI();
 
-        if (hudL) hudL.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
-        if (hudD) hudD.innerText = note;
-        if (nBtn) {
-          nBtn.innerText = `Confirm ${lead}`;
-          nBtn.style.background = "#ff9800";
+    // Body coordinate tracking
+    let landmarks = null;
+    function onPoseResults(results) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const w = canvas.width;
+      const h = canvas.height;
+
+      let rs, ls, rh, lh;
+
+      if (results && results.poseLandmarks) {
+        const lm = results.poseLandmarks;
+        rs = { x: lm[11].x * w, y: lm[11].y * h };
+        ls = { x: lm[12].x * w, y: lm[12].y * h };
+        rh = { x: lm[23].x * w, y: lm[23].y * h };
+        lh = { x: lm[24].x * w, y: lm[24].y * h };
+      } else {
+        // Fallback anatomical frame if person is positioning
+        rs = { x: w * 0.30, y: h * 0.28 };
+        ls = { x: w * 0.70, y: h * 0.28 };
+        rh = { x: w * 0.35, y: h * 0.75 };
+        lh = { x: w * 0.65, y: h * 0.75 };
+      }
+
+      const shoulderWidth = Math.hypot(ls.x - rs.x, ls.y - rs.y) || 1;
+      const uNorm = { x: (ls.x - rs.x) / shoulderWidth, y: (ls.y - rs.y) / shoulderWidth };
+
+      const sternalNotch = { x: (rs.x + ls.x) / 2, y: (rs.y + ls.y) / 2 };
+      const pelvicCenter = { x: (rh.x + lh.x) / 2, y: (rh.y + lh.y) / 2 };
+
+      const torsoHeight = Math.hypot(pelvicCenter.x - sternalNotch.x, pelvicCenter.y - sternalNotch.y) || 1;
+      const vNorm = { x: (pelvicCenter.x - sternalNotch.x) / torsoHeight, y: (pelvicCenter.y - sternalNotch.y) / torsoHeight };
+
+      function getPt(u, v) {
+        return {
+          x: sternalNotch.x + (uNorm.x * u * shoulderWidth) + (vNorm.x * v * torsoHeight),
+          y: sternalNotch.y + (uNorm.y * u * shoulderWidth) + (vNorm.y * v * torsoHeight)
+        };
+      }
+
+      const v4Long = sexMode === "female" ? 0.49 : 0.43;
+      const v4Lat = sexMode === "female" ? 0.30 : 0.28;
+
+      const targets = {
+        "RA": getPt(-0.42, 0.08),
+        "LA": getPt(0.42, 0.08),
+        "RL": getPt(-0.25, 0.90),
+        "LL": getPt(0.25, 0.90),
+        "V1": getPt(-0.12, 0.32),
+        "V2": getPt(0.12, 0.32),
+        "V4": getPt(v4Lat, v4Long)
+      };
+
+      targets["V3"] = {
+        x: (targets["V2"].x + targets["V4"].x) / 2,
+        y: (targets["V2"].y + targets["V4"].y) / 2
+      };
+
+      targets["V5"] = getPt(v4Lat + 0.16, v4Long);
+      targets["V6"] = getPt(v4Lat + 0.31, v4Long);
+
+      // Render leads
+      LEADS.forEach((lead, idx) => {
+        const pt = targets[lead];
+        if (!pt) return;
+
+        if (idx < currentStep) {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+          ctx.fillStyle = '#4caf50';
+          ctx.fill();
+
+          ctx.fillStyle = '#4caf50';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillText(`${lead} ✓`, pt.x + 12, pt.y + 4);
+        } else if (idx === currentStep) {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 18, 0, 2 * Math.PI);
+          ctx.strokeStyle = '#ff9800';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffeb3b';
+          ctx.fill();
+
+          ctx.fillStyle = '#ffeb3b';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText(`PLACE ${lead}`, pt.x + 22, pt.y + 5);
+        } else {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.font = '11px sans-serif';
+          ctx.fillText(lead, pt.x + 8, pt.y + 4);
         }
-      } else {
-        if (hudL) hudL.innerText = "Placement Verified";
-        if (hudD) hudD.innerText = "All 10 electrodes adapted to body metrics";
-        if (nBtn) {
-          nBtn.innerText = "Restart Test";
-          nBtn.style.background = "#4caf50";
-        }
-      }
-    }
-    updateHUD();
-
-    function speak(text) {
-      if (!('speechSynthesis' in window)) return;
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        window.speechSynthesis.speak(utterance);
-      } catch(e) {}
-    }
-
-    function speakLeadGuidance(isInitial = false) {
-      if (currentStep < LEADS.length) {
-        const lead = LEADS[currentStep];
-        const instruction = getLeadInstruction(lead);
-        speak(isInitial ? `Starting placement. First: ${instruction}` : instruction);
-      } else {
-        speak("All ten leads verified and placed successfully.");
-      }
-    }
-
-    function initVoiceRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return;
-
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
-
-        recognition.onend = () => {
-          try { recognition.start(); } catch(e) {}
-        };
-
-        recognition.onresult = (event) => {
-          const last = event.results.length - 1;
-          const transcript = event.results[last][0].transcript.trim().toLowerCase();
-
-          if (transcript.includes("next") || transcript.includes("confirm") || transcript.includes("done")) {
-            advanceLead();
-          } else if (transcript.includes("repeat") || transcript.includes("again") || transcript.includes("what")) {
-            speakLeadGuidance();
-          } else if (transcript.includes("reset") || transcript.includes("restart")) {
-            resetPlacement();
-          } else if (transcript.includes("female")) {
-            setSex('female');
-            speak("Switched to female profile.");
-          } else if (transcript.includes("male")) {
-            setSex('male');
-            speak("Switched to male profile.");
-          }
-        };
-
-        recognition.start();
-      } catch (e) {
-        console.warn('Voice recognition failed', e);
-      }
-    }
-
-    function toggleChat() {
-      const drawer = document.getElementById('chatDrawer');
-      if (!drawer) return;
-      drawer.classList.toggle('open');
-    }
-
-    function askPreset(question) {
-      const input = document.getElementById('chatInput');
-      if (input) {
-        input.value = question;
-      }
-      sendChat();
-    }
-
-    function sendChat() {
-      const input = document.getElementById('chatInput');
-      const messages = document.getElementById('chatMessages');
-      if (!input || !messages) return;
-
-      const text = input.value.trim();
-      if (!text) return;
-
-      const userMsg = document.createElement('div');
-      userMsg.className = 'msg-user';
-      userMsg.textContent = text;
-      messages.appendChild(userMsg);
-
-      input.value = '';
-
-      const reply = document.createElement('div');
-      reply.className = 'msg-bot';
-      const lower = text.toLowerCase();
-      if (lower.includes('v3')) {
-        reply.innerHTML = 'V3 is placed midway between V2 and V4. It sits on the anterior chest, usually at the same horizontal level as V4.';
-      } else if (lower.includes('angle of louis') || lower.includes('sternal angle')) {
-        reply.innerHTML = 'The Angle of Louis is the palpable sternal angle at the manubriosternal junction, just below the clavicles. It helps identify the 2nd intercostal space.';
-      } else if (lower.includes('female') || lower.includes('breast')) {
-        reply.innerHTML = 'For female anatomy, place V4 in the 5th intercostal space within the inframammary fold and displace breast tissue gently rather than placing it on breast tissue.';
-      } else if (lower.includes('high bmi') || lower.includes('bmi')) {
-        reply.innerHTML = 'With high BMI, use the chest contour and palpation of the 5th intercostal space rather than relying on fixed landmarks alone. Allow for wider lateral spacing and a deeper torso estimate.';
-      } else if (lower.includes('next')) {
-        advanceLead();
-        reply.textContent = 'Proceeding to the next lead.';
-      } else if (lower.includes('repeat')) {
-        speakLeadGuidance();
-        reply.textContent = 'Repeating the current lead instruction.';
-      } else {
-        reply.textContent = 'Use the anatomical landmarks: sternal angle, 2nd intercostal space, midclavicular line, and the axillary lines to place each lead accurately.';
-      }
-
-      messages.appendChild(reply);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    function initVisionEngine() {
-      const video = document.getElementById('webcam');
-      if (!video) return;
-
-      navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: false
-      }).then((stream) => {
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          video.play();
-        };
-      }).catch((err) => {
-        console.warn('Camera unavailable', err);
       });
     }
+
+    // Direct, reliable camera bootstrap
+    window.addEventListener('load', () => {
+      if (typeof Pose === 'undefined' || typeof Camera === 'undefined') {
+        // Fallback animation loop if CDN is blocked/slow
+        setInterval(() => onPoseResults(null), 100);
+        return;
+      }
+
+      const pose = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
+
+      pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      pose.onResults(onPoseResults);
+
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await pose.send({ image: video });
+        },
+        facingMode: "environment",
+        width: 640,
+        height: 480
+      });
+      camera.start().catch((err) => {
+        console.warn("Camera fallback active:", err);
+        setInterval(() => onPoseResults(null), 100);
+      });
+    });
   </script>
 </body>
 </html>
