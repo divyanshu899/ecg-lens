@@ -483,6 +483,7 @@
     const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
     let currentStep = 0;
     let patientSex = "male";
+    let chatOpen = false;
 
     let habitusConfig = {
       lateralSpread: 1.0,
@@ -516,11 +517,23 @@
       updateHabitus(selectedSize);
       setSex(patientSex);
 
-      setTimeout(() => {
-        try { initVisionEngine(); } catch(e) { console.error("Vision failed", e); }
-        try { initVoiceRecognition(); } catch(e) { console.warn("Voice skipped", e); }
-        try { speakLeadGuidance(true); } catch(e) {}
-      }, 50);
+      try {
+        initVisionEngine();
+      } catch (e) {
+        console.error('Vision failed', e);
+      }
+
+      try {
+        initVoiceRecognition();
+      } catch (e) {
+        console.warn('Voice skipped', e);
+      }
+
+      try {
+        speakLeadGuidance(true);
+      } catch (e) {
+        console.warn('Initial voice skipped', e);
+      }
     }
 
     function updateHabitus(size) {
@@ -566,31 +579,39 @@
     resizeCanvas();
 
     function advanceLead() {
-      if (currentStep < LEADS.length) {
-        currentStep++;
+      if (currentStep < LEADS.length - 1) {
+        currentStep += 1;
         updateHUD();
         speakLeadGuidance();
+      } else if (currentStep === LEADS.length - 1) {
+        currentStep = LEADS.length;
+        updateHUD();
+        speak('All ten leads verified and placed successfully.');
+      } else {
+        currentStep = 0;
+        updateHUD();
+        speak('Placement reset. First lead is Right Arm.');
       }
     }
 
     function resetPlacement() {
       currentStep = 0;
       updateHUD();
-      speak("Placement reset. First lead is Right Arm.");
+      speak('Placement reset. First lead is Right Arm.');
     }
 
     function getLeadInstruction(lead) {
-      if (lead === "V1") return "Place V1 at the 4th intercostal space, right sternal margin.";
-      if (lead === "V2") return "Place V2 at the 4th intercostal space, left sternal margin.";
-      if (lead === "V4") return patientSex === "female" ? "Place V4 at the 5th intercostal space in the inframammary fold, under breast tissue." : "Place V4 at the 5th intercostal space, mid-clavicular line.";
-      if (lead === "V3") return "Place V3 directly midway between V2 and V4.";
-      if (lead === "V5") return "Place V5 horizontal to V4, on the anterior axillary line.";
-      if (lead === "V6") return "Place V6 horizontal to V4, on the mid-axillary line.";
-      if (lead === "RA") return "Place Right Arm lead on the right infraclavicular area.";
-      if (lead === "LA") return "Place Left Arm lead on the left infraclavicular area.";
-      if (lead === "RL") return "Place Right Leg ground lead on the right lower abdomen.";
-      if (lead === "LL") return "Place Left Leg lead on the left lower abdomen.";
-      return "";
+      if (lead === 'V1') return 'Place V1 at the 4th intercostal space, right sternal margin.';
+      if (lead === 'V2') return 'Place V2 at the 4th intercostal space, left sternal margin.';
+      if (lead === 'V4') return patientSex === 'female' ? 'Place V4 at the 5th intercostal space in the inframammary fold, under breast tissue.' : 'Place V4 at the 5th intercostal space, mid-clavicular line.';
+      if (lead === 'V3') return 'Place V3 directly midway between V2 and V4.';
+      if (lead === 'V5') return 'Place V5 horizontal to V4, on the anterior axillary line.';
+      if (lead === 'V6') return 'Place V6 horizontal to V4, on the mid-axillary line.';
+      if (lead === 'RA') return 'Place Right Arm lead on the right infraclavicular area.';
+      if (lead === 'LA') return 'Place Left Arm lead on the left infraclavicular area.';
+      if (lead === 'RL') return 'Place Right Leg ground lead on the right lower abdomen.';
+      if (lead === 'LL') return 'Place Left Leg lead on the left lower abdomen.';
+      return '';
     }
 
     function updateHUD() {
@@ -600,34 +621,34 @@
 
       if (currentStep < LEADS.length) {
         const lead = LEADS[currentStep];
-        let note = "";
-        if (lead === "V1") note = "4th ICS, Right Sternal Margin";
-        else if (lead === "V2") note = "4th ICS, Left Sternal Margin";
-        else if (lead === "V4") note = patientSex === "female" ? "5th ICS at Inframammary Crease" : "5th ICS, Mid-Clavicular Line";
-        else if (lead === "V3") note = "Halfway between V2 and V4";
-        else if (lead === "V5") note = "Horizontal with V4, Anterior Axillary Line";
-        else if (lead === "V6") note = "Horizontal with V4, Mid-Axillary Line";
-        else if (lead === "RA") note = "Right Infraclavicular Fossa";
-        else if (lead === "LA") note = "Left Infraclavicular Fossa";
-        else if (lead === "RL") note = "Right Lower Abdomen / Flank";
-        else if (lead === "LL") note = "Left Lower Abdomen / Flank";
+        let note = '';
+
+        if (lead === 'V1') note = '4th ICS, Right Sternal Margin';
+        else if (lead === 'V2') note = '4th ICS, Left Sternal Margin';
+        else if (lead === 'V4') note = patientSex === 'female' ? '5th ICS at Inframammary Crease' : '5th ICS, Mid-Clavicular Line';
+        else if (lead === 'V3') note = 'Halfway between V2 and V4';
+        else if (lead === 'V5') note = 'Horizontal with V4, Anterior Axillary Line';
+        else if (lead === 'V6') note = 'Horizontal with V4, Mid-Axillary Line';
+        else if (lead === 'RA') note = 'Right Infraclavicular Fossa';
+        else if (lead === 'LA') note = 'Left Infraclavicular Fossa';
+        else if (lead === 'RL') note = 'Right Lower Abdomen / Flank';
+        else if (lead === 'LL') note = 'Left Lower Abdomen / Flank';
 
         if (hudL) hudL.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
         if (hudD) hudD.innerText = note;
         if (nBtn) {
           nBtn.innerText = `Confirm ${lead}`;
-          nBtn.style.background = "#ff9800";
+          nBtn.style.background = '#ff9800';
         }
       } else {
-        if (hudL) hudL.innerText = "Placement Verified";
-        if (hudD) hudD.innerText = "All 10 electrodes adapted to body metrics";
+        if (hudL) hudL.innerText = 'Placement Verified';
+        if (hudD) hudD.innerText = 'All 10 electrodes adapted to body metrics';
         if (nBtn) {
-          nBtn.innerText = "Restart Test";
-          nBtn.style.background = "#4caf50";
+          nBtn.innerText = 'Restart Test';
+          nBtn.style.background = '#4caf50';
         }
       }
     }
-    updateHUD();
 
     function speak(text) {
       if (!('speechSynthesis' in window)) return;
@@ -637,7 +658,9 @@
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         window.speechSynthesis.speak(utterance);
-      } catch(e) {}
+      } catch (e) {
+        console.warn('Speech failed', e);
+      }
     }
 
     function speakLeadGuidance(isInitial = false) {
@@ -646,7 +669,78 @@
         const instruction = getLeadInstruction(lead);
         speak(isInitial ? `Starting placement. First: ${instruction}` : instruction);
       } else {
-        speak("All ten leads verified and placed successfully.");
+        speak('All ten leads verified and placed successfully.');
+      }
+    }
+
+    function toggleChat() {
+      const chatDrawer = document.getElementById('chatDrawer');
+      if (!chatDrawer) return;
+      chatOpen = !chatOpen;
+      chatDrawer.classList.toggle('open', chatOpen);
+    }
+
+    function addChatMessage(text, isUser = false) {
+      const container = document.getElementById('chatMessages');
+      if (!container) return;
+
+      const msg = document.createElement('div');
+      msg.className = isUser ? 'msg-user' : 'msg-bot';
+      msg.textContent = text;
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function answerClinicalQuestion(prompt) {
+      const query = (prompt || '').toLowerCase();
+
+      if (query.includes('angle of louis') || query.includes('louis')) {
+        return 'The Angle of Louis is the sternal angle at the manubriosternal junction. It marks the level of the second rib and is the landmark for finding the 2nd intercostal space, then moving down to V1 and V2.';
+      }
+      if (query.includes('v3')) {
+        return 'V3 is placed halfway between V2 and V4. V2 sits at the 4th intercostal space along the left sternal border, and V4 is at the 5th intercostal space at the mid-clavicular line.';
+      }
+      if (query.includes('female') || query.includes('breast')) {
+        return 'For female anatomy, place V4 in the 5th intercostal space at the inframammary fold, sliding breast tissue gently aside as needed without shifting the sternum or axillary landmarks.';
+      }
+      if (query.includes('high bmi') || query.includes('bmi') || query.includes('obese')) {
+        return 'With a higher BMI or broader thorax, maintain the same sternal landmarks but increase the lateral spread slightly and place V4-V6 using the mid-axillary and anterior axillary lines as reference points.';
+      }
+      if (query.includes('next')) {
+        return 'Advance to the next lead when the current electrode is confirmed in position. Use the Confirm button or say “next”.';
+      }
+      if (query.includes('repeat')) {
+        return 'Repeat the current lead landmark from the start of the step. Focus on the sternum, clavicle, and intercostal space alignment.';
+      }
+      return 'Use the chest wall landmarks consistently: find the sternal angle, 2nd intercostal space, then move to V1-V2 and V4, with V3 midway and V5-V6 aligned horizontally from V4.';
+    }
+
+    function askPreset(prompt) {
+      addChatMessage(prompt, true);
+      addChatMessage(answerClinicalQuestion(prompt));
+      speak(answerClinicalQuestion(prompt));
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      if (!input) return;
+
+      const text = input.value.trim();
+      if (!text) return;
+
+      addChatMessage(text, true);
+      input.value = '';
+
+      const response = answerClinicalQuestion(text);
+      addChatMessage(response);
+      speak(response);
+    }
+
+    function initVisionEngine() {
+      const status = document.getElementById('statusIndicator');
+      if (status) {
+        status.textContent = 'Tracking';
+        status.style.color = '#4caf50';
       }
     }
 
@@ -660,19 +754,38 @@
         recognition.interimResults = false;
         recognition.lang = 'en-US';
 
-        recognition.onend = () => {
-          try { recognition.start(); } catch(e) {}
+        recognition.onend = function () {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.warn('Voice restart failed', e);
+          }
         };
 
-        recognition.onresult = (event) => {
+        recognition.onresult = function (event) {
           const last = event.results.length - 1;
           const transcript = event.results[last][0].transcript.trim().toLowerCase();
 
-          if (transcript.includes("next") || transcript.includes("confirm") || transcript.includes("done")) {
+          if (transcript.includes('next') || transcript.includes('confirm') || transcript.includes('done')) {
             advanceLead();
-          } else if (transcript.includes("repeat") || transcript.includes("again") || transcript.includes("what")) {
+          } else if (transcript.includes('repeat') || transcript.includes('again') || transcript.includes('what')) {
             speakLeadGuidance();
-          } else if (transcript.includes("reset") || transcript.includes("restart")) {
+          } else if (transcript.includes('reset') || transcript.includes('restart')) {
             resetPlacement();
-          } else if (transcript.includes("female")) {
-            setSex('female
+          } else if (transcript.includes('female')) {
+            setSex('female');
+          } else if (transcript.includes('male')) {
+            setSex('male');
+          }
+        };
+
+        recognition.start();
+      } catch (e) {
+        console.warn('Voice recognition failed to start', e);
+      }
+    }
+
+    updateHUD();
+  </script>
+</body>
+</html>
