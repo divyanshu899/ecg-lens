@@ -390,7 +390,6 @@
 </head>
 <body>
 
-  <!-- Clinical Intake Screen -->
   <div id="patientModal">
     <div class="modal-card">
       <div class="modal-title">Patient Calibration</div>
@@ -418,7 +417,6 @@
     </div>
   </div>
 
-  <!-- AR Workspace -->
   <div id="stage">
     <div id="topControls">
       <div class="hud-card">
@@ -484,6 +482,8 @@
     let currentStep = 0;
     let patientSex = "male";
     let chatOpen = false;
+    let poseEngine = null;
+    let cameraEngine = null;
 
     let habitusConfig = {
       lateralSpread: 1.0,
@@ -717,8 +717,9 @@
 
     function askPreset(prompt) {
       addChatMessage(prompt, true);
-      addChatMessage(answerClinicalQuestion(prompt));
-      speak(answerClinicalQuestion(prompt));
+      const response = answerClinicalQuestion(prompt);
+      addChatMessage(response);
+      speak(response);
     }
 
     function sendChat() {
@@ -736,12 +737,155 @@
       speak(response);
     }
 
+    function getNormalizedPoint(landmark, width, height) {
+      return {
+        x: landmark.x * width,
+        y: landmark.y * height
+      };
+    }
+
+    function drawLeadAnnotation(ctx, point, label, color) {
+      const radius = 10;
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, point.x, point.y - 14);
+    }
+
+    function drawPoseOverlay(results) {
+      const overlay = document.getElementById('overlay');
+      if (!overlay || !ctx) return;
+
+      const width = overlay.width || window.innerWidth;
+      const height = overlay.height || window.innerHeight;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (!results || !results.poseLandmarks || results.poseLandmarks.length === 0) {
+        ctx.fillStyle = 'rgba(255, 152, 0, 0.8)';
+        ctx.font = '700 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Searching for body landmarks...', width / 2, height * 0.12);
+        return;
+      }
+
+      const landmarks = results.poseLandmarks;
+      const connections = [
+        [11, 12], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21],
+        [12, 14], [14, 16], [16, 18], [18, 20], [20, 22],
+        [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [27, 29], [29, 31],
+        [24, 26], [26, 28], [28, 30], [30, 32], [23, 24]
+      ];
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(77, 208, 225, 0.95)';
+      for (const [a, b] of connections) {
+        const p1 = getNormalizedPoint(landmarks[a], width, height);
+        const p2 = getNormalizedPoint(landmarks[b], width, height);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+
+      const leftShoulder = getNormalizedPoint(landmarks[11], width, height);
+      const rightShoulder = getNormalizedPoint(landmarks[12], width, height);
+      const leftHip = getNormalizedPoint(landmarks[23], width, height);
+      const rightHip = getNormalizedPoint(landmarks[24], width, height);
+      const centerX = (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4;
+      const centerY = (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4;
+      const chestWidth = Math.abs(rightShoulder.x - leftShoulder.x) * 1.25;
+      const torsoHeight = Math.abs((leftHip.y + rightHip.y) / 2 - (leftShoulder.y + rightShoulder.y) / 2) * 1.7;
+
+      const leadMap = {
+        RA: { x: centerX - chestWidth * 0.7, y: centerY - torsoHeight * 0.18 },
+        LA: { x: centerX + chestWidth * 0.7, y: centerY - torsoHeight * 0.18 },
+        RL: { x: centerX - chestWidth * 0.55, y: centerY + torsoHeight * 0.42 },
+        LL: { x: centerX + chestWidth * 0.55, y: centerY + torsoHeight * 0.42 },
+        V1: { x: centerX - chestWidth * 0.18, y: centerY - torsoHeight * 0.12 },
+        V2: { x: centerX + chestWidth * 0.08, y: centerY - torsoHeight * 0.18 },
+        V4: { x: centerX, y: centerY + torsoHeight * 0.12 },
+        V3: { x: centerX + chestWidth * 0.18, y: centerY - torsoHeight * 0.06 },
+        V5: { x: centerX + chestWidth * 0.42, y: centerY + torsoHeight * 0.1 },
+        V6: { x: centerX + chestWidth * 0.7, y: centerY + torsoHeight * 0.12 }
+      };
+
+      const currentLead = currentStep < LEADS.length ? LEADS[currentStep] : null;
+      Object.entries(leadMap).forEach(([label, point]) => {
+        const isCurrent = label === currentLead;
+        drawLeadAnnotation(ctx, point, label, isCurrent ? '#ff9800' : 'rgba(2, 136, 209, 0.8)');
+      });
+
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 152, 0, 0.75)';
+      ctx.lineWidth = 2;
+      ctx.arc(centerX, centerY, Math.max(chestWidth * 0.55, 40), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     function initVisionEngine() {
       const status = document.getElementById('statusIndicator');
-      if (status) {
-        status.textContent = 'Tracking';
-        status.style.color = '#4caf50';
+      const video = document.getElementById('webcam');
+      if (!video) return;
+
+      if (typeof window.Pose === 'undefined' || typeof window.Camera === 'undefined') {
+        if (status) {
+          status.textContent = 'Camera unavailable';
+          status.style.color = '#ff5722';
+        }
+        return;
       }
+
+      if (status) {
+        status.textContent = 'Starting camera...';
+        status.style.color = '#ff9800';
+      }
+
+      poseEngine = new window.Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
+
+      poseEngine.setOptions({
+        modelComplexity: 1,
+        selfieMode: false,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        smoothSegmentation: false,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      poseEngine.onResults((results) => {
+        const statusValue = document.getElementById('statusIndicator');
+        if (results && results.poseLandmarks && results.poseLandmarks.length > 0) {
+          if (statusValue) {
+            statusValue.textContent = 'Tracking';
+            statusValue.style.color = '#4caf50';
+          }
+        } else if (statusValue) {
+          statusValue.textContent = 'Searching...';
+          statusValue.style.color = '#ff5722';
+        }
+        drawPoseOverlay(results);
+      });
+
+      cameraEngine = new window.Camera(video, {
+        onFrame: async () => {
+          if (poseEngine) {
+            await poseEngine.send({ image: video });
+          }
+        },
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+
+      cameraEngine.start();
+      video.style.display = 'block';
     }
 
     function initVoiceRecognition() {
