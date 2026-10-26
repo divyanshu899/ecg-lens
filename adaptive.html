@@ -21,7 +21,6 @@
       background: #0a0a0a;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       user-select: none;
-      -webkit-user-select: none;
     }
     #stage {
       position: relative;
@@ -46,11 +45,12 @@
       z-index: 5;
     }
 
-    /* Modal Overlay - Elevated to highest layer with explicit pointer events */
+    /* Modal Overlay */
     #patientModal {
       position: fixed;
       inset: 0;
       width: 100vw;
+      height: 100%;
       height: 100dvh;
       background: rgba(10, 10, 10, 0.96);
       z-index: 99999;
@@ -60,7 +60,6 @@
       align-items: center;
       padding: 20px 16px 40px;
       overflow-y: auto;
-      pointer-events: auto;
       -webkit-overflow-scrolling: touch;
     }
     .modal-card {
@@ -73,8 +72,6 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
       text-align: center;
       margin: auto 0;
-      position: relative;
-      pointer-events: auto;
     }
     .modal-title {
       font-size: 19px;
@@ -156,7 +153,6 @@
       box-shadow: 0 4px 14px rgba(255, 152, 0, 0.4);
     }
     .start-btn:active {
-      transform: scale(0.98);
       background: #f57c00;
     }
 
@@ -170,7 +166,6 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      pointer-events: auto;
     }
     .hud-card {
       background: rgba(18, 18, 19, 0.92);
@@ -257,7 +252,6 @@
       box-shadow: 0 0 6px #4caf50;
     }
 
-    /* Floating Chat Pill */
     #chatToggleBtn {
       position: absolute;
       bottom: 82px;
@@ -277,7 +271,6 @@
       gap: 6px;
     }
 
-    /* Bottom Action Bar */
     #bottomBar {
       position: absolute;
       bottom: 20px;
@@ -286,7 +279,6 @@
       z-index: 10;
       display: flex;
       gap: 12px;
-      pointer-events: auto;
     }
     .btn {
       border: none;
@@ -451,7 +443,7 @@
         <option value="heavy">High BMI / Expanded Thorax</option>
       </select>
 
-      <button type="button" class="start-btn" id="modalStartBtn">Start AR Placement</button>
+      <button type="button" class="start-btn" id="modalStartBtn" onclick="startARGuide()">Start AR Placement</button>
     </div>
   </div>
 
@@ -523,27 +515,6 @@
   </div>
 
   <script>
-    const video = document.getElementById('webcam');
-    const canvas = document.getElementById('overlay');
-    const ctx = canvas.getContext('2d');
-    const hudLead = document.getElementById('hudLead');
-    const hudDetail = document.getElementById('hudDetail');
-    const nextBtn = document.getElementById('nextBtn');
-    const btnMale = document.getElementById('btnMale');
-    const btnFemale = document.getElementById('btnFemale');
-    const optMale = document.getElementById('optMale');
-    const optFemale = document.getElementById('optFemale');
-    const patientModal = document.getElementById('patientModal');
-    const modalStartBtn = document.getElementById('modalStartBtn');
-    const bodySizeSelect = document.getElementById('bodySize');
-    const initialBodySize = document.getElementById('initialBodySize');
-    const statusIndicator = document.getElementById('statusIndicator');
-    const micDot = document.getElementById('micDot');
-    const micLabel = document.getElementById('micLabel');
-    const chatDrawer = document.getElementById('chatDrawer');
-    const chatMessages = document.getElementById('chatMessages');
-    const chatInput = document.getElementById('chatInput');
-
     const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
     let currentStep = 0;
     let patientSex = "male";
@@ -556,49 +527,53 @@
 
     function selectInitialSex(sex) {
       patientSex = sex;
-      if (sex === 'male') {
-        optMale.classList.add('selected');
-        optFemale.classList.remove('selected');
-      } else {
-        optFemale.classList.add('selected');
-        optMale.classList.remove('selected');
+      const optM = document.getElementById('optMale');
+      const optF = document.getElementById('optFemale');
+      if (optM && optF) {
+        if (sex === 'male') {
+          optM.classList.add('selected');
+          optF.classList.remove('selected');
+        } else {
+          optF.classList.add('selected');
+          optM.classList.remove('selected');
+        }
       }
     }
 
     function startARGuide() {
-      // Hide modal immediately so UI is responsive
-      patientModal.style.display = 'none';
+      // 1. Immediately dismiss modal so UI never locks up
+      const modal = document.getElementById('patientModal');
+      if (modal) modal.style.display = 'none';
 
-      const selectedSize = initialBodySize ? initialBodySize.value : 'standard';
-      if (bodySizeSelect) bodySizeSelect.value = selectedSize;
+      // 2. Sync habitus & sex values safely
+      const initSize = document.getElementById('initialBodySize');
+      const topSize = document.getElementById('bodySize');
+      const selectedSize = initSize ? initSize.value : 'standard';
+      if (topSize) topSize.value = selectedSize;
       updateHabitus(selectedSize);
       setSex(patientSex);
 
+      // 3. Isolated vision startup
       try {
         initVisionEngine();
-      } catch (e) {
-        console.error("Camera init error:", e);
+      } catch (err) {
+        console.error("Camera vision startup error:", err);
       }
 
+      // 4. Isolated speech recognition
       try {
         initVoiceRecognition();
-      } catch (e) {
-        console.warn("Speech recognition skipped:", e);
+      } catch (err) {
+        console.warn("Speech recognition skipped:", err);
       }
 
+      // 5. Isolated text-to-speech
       try {
         speakLeadGuidance(true);
-      } catch (e) {
-        console.warn("TTS error:", e);
+      } catch (err) {
+        console.warn("TTS skipped:", err);
       }
     }
-
-    // Explicit dual binding for mobile browsers
-    modalStartBtn.addEventListener('click', startARGuide);
-    modalStartBtn.addEventListener('touchend', function(e) {
-      e.preventDefault();
-      startARGuide();
-    });
 
     function updateHabitus(size) {
       if (size === 'slim') {
@@ -622,17 +597,25 @@
 
     function setSex(sex) {
       patientSex = sex;
-      if (sex === 'male') {
-        btnMale.classList.add('active');
-        btnFemale.classList.remove('active');
-      } else {
-        btnFemale.classList.add('active');
-        btnMale.classList.remove('active');
+      const bM = document.getElementById('btnMale');
+      const bF = document.getElementById('btnFemale');
+      if (bM && bF) {
+        if (sex === 'male') {
+          bM.classList.add('active');
+          bF.classList.remove('active');
+        } else {
+          bF.classList.add('active');
+          bM.classList.remove('active');
+        }
       }
       updateHUD();
     }
 
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+
     function resizeCanvas() {
+      if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
@@ -668,6 +651,10 @@
     }
 
     function updateHUD() {
+      const hudL = document.getElementById('hudLead');
+      const hudD = document.getElementById('hudDetail');
+      const nBtn = document.getElementById('nextBtn');
+
       if (currentStep < LEADS.length) {
         const lead = LEADS[currentStep];
         let note = "";
@@ -682,10 +669,36 @@
         else if (lead === "RL") note = "Right Lower Abdomen / Flank";
         else if (lead === "LL") note = "Left Lower Abdomen / Flank";
 
-        hudLead.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
-        hudDetail.innerText = note;
-        nextBtn.innerText = `Confirm ${lead}`;
-        nextBtn.style.background = "#ff9800";
+        if (hudL) hudL.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
+        if (hudD) hudD.innerText = note;
+        if (nBtn) {
+          nBtn.innerText = `Confirm ${lead}`;
+          nBtn.style.background = "#ff9800";
+        }
       } else {
-        hudLead.innerText = "Placement Verified";
-        hudDetail.innerText = "All 10 electrodes adapted to
+        if (hudL) hudL.innerText = "Placement Verified";
+        if (hudD) hudD.innerText = "All 10 electrodes adapted to body metrics";
+        if (nBtn) {
+          nBtn.innerText = "Restart Test";
+          nBtn.style.background = "#4caf50";
+        }
+      }
+    }
+    updateHUD();
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      } catch(e) {}
+    }
+
+    function speakLeadGuidance(isInitial = false) {
+      if (currentStep < LEADS.length) {
+        const lead = LEADS[currentStep];
+        const instruction = getLeadInstruction(lead);
+        speak(isInitial ? `S
