@@ -323,16 +323,16 @@
     }
 
     function getLeadInstruction(lead) {
-      if (lead === 'V1') return 'Place V1 at the 4th intercostal space, right sternal margin.';
-      if (lead === 'V2') return 'Place V2 at the 4th intercostal space, left sternal margin.';
-      if (lead === 'V4') return patientSex === 'female' ? 'Place V4 at the 5th intercostal space in the inframammary fold, under breast tissue.' : 'Place V4 at the 5th intercostal space, mid-clavicular line.';
-      if (lead === 'V3') return 'Place V3 directly midway between V2 and V4.';
-      if (lead === 'V5') return 'Place V5 horizontal to V4, on the anterior axillary line.';
-      if (lead === 'V6') return 'Place V6 horizontal to V4, on the mid-axillary line.';
-      if (lead === 'RA') return 'Place Right Arm lead on the right infraclavicular area.';
-      if (lead === 'LA') return 'Place Left Arm lead on the left infraclavicular area.';
-      if (lead === 'RL') return 'Place Right Leg ground lead on the right lower abdomen.';
-      if (lead === 'LL') return 'Place Left Leg lead on the left lower abdomen.';
+      if (lead === 'V1') return 'Place V1 in the 4th intercostal space at the right sternal border.';
+      if (lead === 'V2') return 'Place V2 in the 4th intercostal space at the left sternal border.';
+      if (lead === 'V4') return patientSex === 'female' ? 'Place V4 at the 5th intercostal space in the inframammary fold, under the breast tissue.' : 'Place V4 at the 5th intercostal space in the midclavicular line.';
+      if (lead === 'V3') return 'Place V3 midway between V2 and V4.';
+      if (lead === 'V5') return 'Place V5 at the same horizontal level as V4 on the anterior axillary line.';
+      if (lead === 'V6') return 'Place V6 at the same horizontal level as V4 on the mid-axillary line.';
+      if (lead === 'RA') return 'Place the right arm lead on the right infraclavicular area.';
+      if (lead === 'LA') return 'Place the left arm lead on the left infraclavicular area.';
+      if (lead === 'RL') return 'Place the right leg lead on the right lower abdomen or thigh region.';
+      if (lead === 'LL') return 'Place the left leg lead on the left lower abdomen or thigh region.';
       return '';
     }
 
@@ -345,16 +345,16 @@
         const lead = LEADS[currentStep];
         let note = '';
 
-        if (lead === 'V1') note = '4th ICS, Right Sternal Margin';
-        else if (lead === 'V2') note = '4th ICS, Left Sternal Margin';
-        else if (lead === 'V4') note = patientSex === 'female' ? '5th ICS at Inframammary Crease' : '5th ICS, Mid-Clavicular Line';
-        else if (lead === 'V3') note = 'Halfway between V2 and V4';
+        if (lead === 'V1') note = '4th ICS, Right Sternal Border';
+        else if (lead === 'V2') note = '4th ICS, Left Sternal Border';
+        else if (lead === 'V4') note = patientSex === 'female' ? '5th ICS, Inframammary Fold' : '5th ICS, Midclavicular Line';
+        else if (lead === 'V3') note = 'Midway between V2 and V4';
         else if (lead === 'V5') note = 'Horizontal with V4, Anterior Axillary Line';
         else if (lead === 'V6') note = 'Horizontal with V4, Mid-Axillary Line';
         else if (lead === 'RA') note = 'Right Infraclavicular Fossa';
         else if (lead === 'LA') note = 'Left Infraclavicular Fossa';
-        else if (lead === 'RL') note = 'Right Lower Abdomen / Flank';
-        else if (lead === 'LL') note = 'Left Lower Abdomen / Flank';
+        else if (lead === 'RL') note = 'Right Lower Abdomen / Thigh';
+        else if (lead === 'LL') note = 'Left Lower Abdomen / Thigh';
 
         if (hudL) hudL.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
         if (hudD) hudD.innerText = note;
@@ -364,7 +364,7 @@
         }
       } else {
         if (hudL) hudL.innerText = 'Placement Verified';
-        if (hudD) hudD.innerText = 'All 10 electrodes adapted to body metrics';
+        if (hudD) hudD.innerText = 'All 10 electrodes aligned to chest anatomy';
         if (nBtn) {
           nBtn.innerText = 'Restart Test';
           nBtn.style.background = '#4caf50';
@@ -414,24 +414,24 @@
       const query = (prompt || '').toLowerCase();
 
       if (query.includes('angle of louis') || query.includes('louis')) {
-        return 'The Angle of Louis is the sternal angle at the manubriosternal junction. It marks the level of the second rib and is the landmark for finding the 2nd intercostal space, then moving down to V1 and V2.';
+        return 'The Angle of Louis is the sternal angle at the manubriosternal junction. It marks the level of the second rib and is the landmark for finding the second intercostal space, then moving down to V1 and V2.';
       }
       if (query.includes('v3')) {
-        return 'V3 is placed halfway between V2 and V4. V2 sits at the 4th intercostal space along the left sternal border, and V4 is at the 5th intercostal space at the mid-clavicular line.';
+        return 'V3 is placed midway between V2 and V4. V2 sits at the 4th intercostal space at the left sternal border, and V4 sits at the 5th intercostal space in the midclavicular line.';
       }
       if (query.includes('female') || query.includes('breast')) {
-        return 'For female anatomy, place V4 in the 5th intercostal space at the inframammary fold, sliding breast tissue gently aside as needed without shifting the sternum or axillary landmarks.';
+        return 'For female anatomy, place V4 at the 5th intercostal space in the inframammary fold, gently moving breast tissue aside as needed while keeping the sternum and axillary landmarks stable.';
       }
       if (query.includes('high bmi') || query.includes('bmi') || query.includes('obese')) {
-        return 'With a higher BMI or broader thorax, maintain the same sternal landmarks but increase the lateral spread slightly and place V4-V6 using the mid-axillary and anterior axillary lines as reference points.';
+        return 'For higher BMI or broadened thorax, keep the same sternum landmarks, increase the lateral spread slightly, and use the anterior and mid-axillary lines to place V4-V6 accurately.';
       }
       if (query.includes('next')) {
-        return 'Advance to the next lead when the current electrode is confirmed in position. Use the Confirm button or say “next”.';
+        return 'Advance to the next lead only after confirming the current lead is in the correct position. Use the Confirm button or say “next”.';
       }
       if (query.includes('repeat')) {
-        return 'Repeat the current lead landmark from the start of the step. Focus on the sternum, clavicle, and intercostal space alignment.';
+        return 'Repeat the current lead landmark from the sternum, clavicle, and intercostal space alignment. Recheck the vertical position and lateral placement.';
       }
-      return 'Use the chest wall landmarks consistently: find the sternal angle, 2nd intercostal space, then move to V1-V2 and V4, with V3 midway and V5-V6 aligned horizontally from V4.';
+      return 'Use the standard chest landmarks consistently: find the sternum and the 4th intercostal space, then place V1-V2 at the sternal border, V3 midway, and V4-V6 on the same horizontal plane as V4.';
     }
 
     async function askGemini(prompt) {
@@ -439,30 +439,25 @@
       if (!cleaned) return 'Please type a question first.';
 
       if (!GEMINI_API_KEY) {
-        return 'Gemini key not configured. Put your key in a server-side environment variable or injected config, and do not hard-code it in the browser.';
+        return answerClinicalQuestion(cleaned);
       }
 
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: cleaned }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 250 }
-          })
+          body: JSON.stringify({ message: cleaned })
         });
 
-        const data = await response.json();
         if (!response.ok) {
-          const message = data?.error?.message || 'Gemini request failed.';
-          return `Gemini error: ${message}`;
+          return answerClinicalQuestion(cleaned);
         }
 
-        const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || 'No response from Gemini.';
-        return text;
+        const data = await response.json();
+        return data?.reply || answerClinicalQuestion(cleaned);
       } catch (error) {
-        console.error(error);
-        return 'Gemini request failed. Check your network or key configuration.';
+        console.warn('Gemini backend unavailable', error);
+        return answerClinicalQuestion(cleaned);
       }
     }
 
@@ -507,6 +502,32 @@
       ctx.fillText(label, point.x, point.y - 14);
     }
 
+    function clampPoint(p, left, right, top, bottom) {
+      return {
+        x: Math.min(Math.max(p.x, left), right),
+        y: Math.min(Math.max(p.y, top), bottom)
+      };
+    }
+
+    function buildLeadMap(centerX, centerY, chestWidth, torsoHeight, adjustX = 0) {
+      const sternalX = centerX + adjustX;
+      const clavicleY = centerY - torsoHeight * 0.20;
+      const v4Y = centerY + torsoHeight * 0.08;
+
+      return {
+        RA: { x: centerX - chestWidth * 0.58, y: clavicleY },
+        LA: { x: centerX + chestWidth * 0.58, y: clavicleY },
+        RL: { x: centerX - chestWidth * 0.38, y: centerY + torsoHeight * 0.78 },
+        LL: { x: centerX + chestWidth * 0.38, y: centerY + torsoHeight * 0.78 },
+        V1: { x: sternalX - chestWidth * 0.18, y: centerY - torsoHeight * 0.18 },
+        V2: { x: sternalX + chestWidth * 0.06, y: centerY - torsoHeight * 0.12 },
+        V3: { x: sternalX + chestWidth * 0.28, y: centerY + torsoHeight * 0.02 },
+        V4: { x: sternalX + chestWidth * 0.38, y: v4Y },
+        V5: { x: sternalX + chestWidth * 0.56, y: v4Y },
+        V6: { x: sternalX + chestWidth * 0.74, y: v4Y }
+      };
+    }
+
     function drawPoseOverlay(results) {
       const overlay = document.getElementById('overlay');
       if (!overlay || !ctx) return;
@@ -528,7 +549,7 @@
         [11, 12], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21],
         [12, 14], [14, 16], [16, 18], [18, 20], [20, 22],
         [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [27, 29], [29, 31],
-        [24, 26], [26, 28], [28, 30], [30, 32], [23, 24]
+        [24, 26], [26, 28], [28, 30], [30, 32]
       ];
 
       ctx.lineWidth = 3;
@@ -549,32 +570,18 @@
 
       const centerX = (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4;
       const centerY = (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4;
-      const chestWidth = Math.abs(rightShoulder.x - leftShoulder.x) * 1.2;
-      const torsoHeight = Math.abs((leftHip.y + rightHip.y) / 2 - (leftShoulder.y + rightShoulder.y) / 2) * 1.8;
+      const chestWidth = Math.abs(rightShoulder.x - leftShoulder.x) * 1.25;
+      const torsoHeight = Math.abs((leftHip.y + rightHip.y)/2 - (leftShoulder.y + rightShoulder.y)/2) * 1.7;
 
-      const torsoLeft = centerX - chestWidth * 0.42;
-      const torsoRight = centerX + chestWidth * 0.42;
-      const torsoTop = centerY - torsoHeight * 0.52;
-      const torsoBottom = centerY + torsoHeight * 0.52;
+      const torsoLeft = centerX - chestWidth * 0.60;
+      const torsoRight = centerX + chestWidth * 0.60;
+      const torsoTop = centerY - torsoHeight * 0.45;
+      const torsoBottom = centerY + torsoHeight * 0.85;
 
-      const leadMap = {
-        RA: { x: centerX - chestWidth * 0.64, y: centerY - torsoHeight * 0.18 },
-        LA: { x: centerX + chestWidth * 0.64, y: centerY - torsoHeight * 0.18 },
-        RL: { x: centerX - chestWidth * 0.38, y: centerY + torsoHeight * 0.42 },
-        LL: { x: centerX + chestWidth * 0.38, y: centerY + torsoHeight * 0.42 },
-        V1: { x: centerX - chestWidth * 0.18, y: centerY - torsoHeight * 0.08 },
-        V2: { x: centerX + chestWidth * 0.08, y: centerY - torsoHeight * 0.12 },
-        V4: { x: centerX, y: centerY + torsoHeight * 0.14 },
-        V3: { x: centerX + chestWidth * 0.22, y: centerY - torsoHeight * 0.02 },
-        V5: { x: centerX + chestWidth * 0.38, y: centerY + torsoHeight * 0.12 },
-        V6: { x: centerX + chestWidth * 0.62, y: centerY + torsoHeight * 0.15 }
-      };
+      const leadMap = buildLeadMap(centerX, centerY, chestWidth, torsoHeight, 0);
 
       Object.entries(leadMap).forEach(([label, point]) => {
-        const clamped = {
-          x: Math.min(Math.max(point.x, torsoLeft + 18), torsoRight - 18),
-          y: Math.min(Math.max(point.y, torsoTop + 18), torsoBottom - 18)
-        };
+        const clamped = clampPoint(point, torsoLeft + 18, torsoRight - 18, torsoTop + 18, torsoBottom - 18);
         const isCurrent = label === (currentStep < LEADS.length ? LEADS[currentStep] : null);
         drawLeadAnnotation(ctx, clamped, label, isCurrent ? '#ff9800' : 'rgba(2, 136, 209, 0.8)');
       });
