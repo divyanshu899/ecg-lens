@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Adaptive 12-Lead ECG AR Guide</title>
+
+  <!-- MediaPipe Pose and Camera Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0a0a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    video,
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    canvas {
+      z-index: 5;
+    }
+
+    /* Modal Overlay */
+    #patientModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: #111111;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-y: auto;
+      pointer-events: auto;
+    }
+    .modal-card {
+      background: #1e1e1e;
+      border: 1px solid #383838;
+      border-radius: 16px;
+      padding: 24px 20px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    }
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .modal-desc {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+    .modal-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ff9800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+    .sex-select-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .sex-card-btn {
+      flex: 1;
+      background: #2a2a2a;
+      border: 2px solid #3e3e3e;
+      border-radius: 12px;
+      padding: 14px 8px;
+      color: #ddd;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .sex-card-btn.selected {
+      border-color: #0288d1;
+      background: rgba(2, 136, 209, 0.25);
+      color: #fff;
+    }
+    .modal-select {
+      width: 100%;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      margin-bottom: 24px;
+      outline: none;
+    }
+    .start-btn {
+      width: 100%;
+      background: #ff9800;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      display: block;
+      box-shadow: 0 4px 14px rgba(255, 152, 0, 0.4);
+      pointer-events: auto;
+    }
+
+    /* Top HUD */
+    #topControls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    .hud-card {
+      background: rgba(18, 18, 19, 0.92);
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 8px 12px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hud-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ff9800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .hud-subtitle {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+    .pill-group {
+      display: flex;
+      background: #222;
+      border-radius: 20px;
+      padding: 2px;
+      border: 1px solid #444;
+    }
+    .pill-btn {
+      background: transparent;
+      border: none;
+      color: #888;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 16px;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .pill-btn.active {
+      background: #0288d1;
+      color: #fff;
+    }
+    .habitus-bar {
+      background: rgba(18, 18, 18, 0.92);
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ccc;
+      font-size: 11px;
+    }
+    .habitus-bar select {
+      background: #252525;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      outline: none;
+    }
+
+    /* Floating Chat Pill */
+    #chatToggleBtn {
+      position: absolute;
+      bottom: 82px;
+      right: 16px;
+      z-index: 15;
+      background: rgba(2, 136, 209, 0.95);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    /* Bottom Buttons */
+    #bottomBar {
+      position: absolute;
+      bottom: 20px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    .btn {
+      border: none;
+      border-radius: 28px;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 13px 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      pointer-events: auto;
+    }
+    #nextBtn {
+      background: #ff9800;
+      color: #fff;
+      flex-grow: 1;
+    }
+    #resetBtn {
+      background: #333;
+      color: #eee;
+      width: 85px;
+    }
+
+    /* Chat Drawer */
+    #chatDrawer {
+      position: fixed;
+      bottom: -100%;
+      left: 0;
+      right: 0;
+      height: 60vh;
+      max-height: 480px;
+      background: #181818;
+      border-top: 2px solid #333;
+      border-radius: 20px 20px 0 0;
+      z-index: 9999;
+      transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.7);
+      pointer-events: auto;
+    }
+    #chatDrawer.open {
+      bottom: 0;
+    }
+    .chat-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+    .chat-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #81d4fa;
+    }
+    .chat-close {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .msg-bot {
+      background: #252525;
+      color: #ddd;
+      border-radius: 12px 12px 12px 2px;
+      padding: 10px 12px;
+      max-width: 85%;
+      line-height: 1.4;
+    }
+    .msg-user {
+      background: #0288d1;
+      color: #fff;
+      border-radius: 12px 12px 2px 12px;
+      padding: 10px 12px;
+      max-width: 85%;
+      align-self: flex-end;
+      line-height: 1.4;
+    }
+    .quick-prompts {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 6px 12px;
+      background: #1c1c1c;
+      border-top: 1px solid #2a2a2a;
+    }
+    .chip {
+      background: #2b2b2b;
+      color: #bbb;
+      border: 1px solid #444;
+      border-radius: 14px;
+      padding: 5px 10px;
+      font-size: 11px;
+      white-space: nowrap;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .chat-input-bar {
+      display: flex;
+      padding: 8px 12px 14px;
+      gap: 8px;
+      background: #181818;
+    }
+    .chat-input-bar input {
+      flex: 1;
+      background: #252525;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 20px;
+      padding: 8px 14px;
+      font-size: 13px;
+      outline: none;
+    }
+    .chat-send-btn {
+      background: #0288d1;
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Clinical Intake Screen -->
+  <div id="patientModal">
+    <div class="modal-card">
+      <div class="modal-title">Patient Calibration</div>
+      <div class="modal-desc">Select anatomical profile for lead trajectory and intercostal spacing.</div>
+
+      <div class="modal-label">Biological Profile</div>
+      <div class="sex-select-row">
+        <button type="button" class="sex-card-btn selected" id="optMale" onclick="selectInitialSex('male')">
+          Male
+        </button>
+        <button type="button" class="sex-card-btn" id="optFemale" onclick="selectInitialSex('female')">
+          Female
+        </button>
+      </div>
+
+      <div class="modal-label">Body Build / Habitus</div>
+      <select class="modal-select" id="initialBodySize">
+        <option value="slim">Slim / Pediatric</option>
+        <option value="standard" selected>Standard Adult</option>
+        <option value="broad">Athletic / Broad Thorax</option>
+        <option value="heavy">High BMI / Expanded</option>
+      </select>
+
+      <button type="button" class="start-btn" onclick="startARGuide()">Start AR Placement</button>
+    </div>
+  </div>
+
+  <!-- AR Workspace -->
+  <div id="stage">
+    <div id="topControls">
+      <div class="hud-card">
+        <div>
+          <div class="hud-title" id="hudLead">Tracking Patient...</div>
+          <div class="hud-subtitle" id="hudDetail">Center camera on shoulders & chest</div>
+        </div>
+        <div class="pill-group">
+          <button class="pill-btn active" id="btnMale" onclick="setSex('male')">Male</button>
+          <button class="pill-btn" id="btnFemale" onclick="setSex('female')">Female</button>
+        </div>
+      </div>
+
+      <div class="habitus-bar">
+        <span>Build:</span>
+        <select id="bodySize" onchange="updateHabitus(this.value)">
+          <option value="slim">Slim / Pediatric</option>
+          <option value="standard" selected>Standard Adult</option>
+          <option value="broad">Athletic / Broad</option>
+          <option value="heavy">High BMI</option>
+        </select>
+        <span id="statusIndicator" style="margin-left: auto; color: #ff5722;">Searching...</span>
+      </div>
+    </div>
+
+    <video id="webcam" playsinline autoplay muted></video>
+    <canvas id="overlay"></canvas>
+
+    <button id="chatToggleBtn" onclick="toggleChat()">💬 Ask Guide</button>
+
+    <div id="bottomBar">
+      <button class="btn" id="resetBtn" onclick="resetPlacement()">Reset</button>
+      <button class="btn" id="nextBtn" onclick="advanceLead()">Confirm RA</button>
+    </div>
+  </div>
+
+  <div id="chatDrawer">
+    <div class="chat-header">
+      <div class="chat-title">LeadLens Clinical Assistant</div>
+      <button class="chat-close" onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg-bot">
+        Hello! I'm here to assist with 12-lead placement guidelines. You can also say <b>"Next"</b> or <b>"Repeat"</b> hands-free.
+      </div>
+    </div>
+
+    <div class="quick-prompts">
+      <div class="chip" onclick="askPreset('Where is the Angle of Louis?')">Angle of Louis?</div>
+      <div class="chip" onclick="askPreset('How to place leads on female anatomy?')">Female / Breast tissue?</div>
+      <div class="chip" onclick="askPreset('Where does V3 go?')">Where is V3?</div>
+      <div class="chip" onclick="askPreset('What if the patient has high BMI?')">High BMI tips?</div>
+    </div>
+
+    <div class="chat-input-bar">
+      <input type="text" id="chatInput" placeholder="Ask an anatomical question..." onkeydown="if(event.key==='Enter') sendChat()">
+      <button class="chat-send-btn" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+
+  <script>
+    const LEADS = ["RA", "LA", "RL", "LL", "V1", "V2", "V4", "V3", "V5", "V6"];
+    let currentStep = 0;
+    let patientSex = "male";
+
+    let habitusConfig = {
+      lateralSpread: 1.0,
+      torsoDepthRatio: 1.0,
+      sternalGap: 0.12
+    };
+
+    function selectInitialSex(sex) {
+      patientSex = sex;
+      const optM = document.getElementById('optMale');
+      const optF = document.getElementById('optFemale');
+      if (optM && optF) {
+        if (sex === 'male') {
+          optM.classList.add('selected');
+          optF.classList.remove('selected');
+        } else {
+          optF.classList.add('selected');
+          optM.classList.remove('selected');
+        }
+      }
+    }
+
+    function startARGuide() {
+      const modal = document.getElementById('patientModal');
+      if (modal) modal.style.display = 'none';
+
+      const initSize = document.getElementById('initialBodySize');
+      const topSize = document.getElementById('bodySize');
+      const selectedSize = initSize ? initSize.value : 'standard';
+      if (topSize) topSize.value = selectedSize;
+      updateHabitus(selectedSize);
+      setSex(patientSex);
+
+      setTimeout(() => {
+        try { initVisionEngine(); } catch(e) { console.error("Vision failed", e); }
+        try { initVoiceRecognition(); } catch(e) { console.warn("Voice skipped", e); }
+        try { speakLeadGuidance(true); } catch(e) {}
+      }, 50);
+    }
+
+    function updateHabitus(size) {
+      if (size === 'slim') {
+        habitusConfig = { lateralSpread: 0.85, torsoDepthRatio: 0.92, sternalGap: 0.09 };
+      } else if (size === 'broad') {
+        habitusConfig = { lateralSpread: 1.15, torsoDepthRatio: 1.05, sternalGap: 0.14 };
+      } else if (size === 'heavy') {
+        habitusConfig = { lateralSpread: 1.30, torsoDepthRatio: 1.15, sternalGap: 0.16 };
+      } else {
+        habitusConfig = { lateralSpread: 1.0, torsoDepthRatio: 1.0, sternalGap: 0.12 };
+      }
+    }
+
+    const smoothed = { rShoulder: null, lShoulder: null, rHip: null, lHip: null };
+    const ALPHA = 0.25;
+
+    function setSex(sex) {
+      patientSex = sex;
+      const bM = document.getElementById('btnMale');
+      const bF = document.getElementById('btnFemale');
+      if (bM && bF) {
+        if (sex === 'male') {
+          bM.classList.add('active');
+          bF.classList.remove('active');
+        } else {
+          bF.classList.add('active');
+          bM.classList.remove('active');
+        }
+      }
+      updateHUD();
+    }
+
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+
+    function resizeCanvas() {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function advanceLead() {
+      if (currentStep < LEADS.length) {
+        currentStep++;
+        updateHUD();
+        speakLeadGuidance();
+      }
+    }
+
+    function resetPlacement() {
+      currentStep = 0;
+      updateHUD();
+      speak("Placement reset. First lead is Right Arm.");
+    }
+
+    function getLeadInstruction(lead) {
+      if (lead === "V1") return "Place V1 at the 4th intercostal space, right sternal margin.";
+      if (lead === "V2") return "Place V2 at the 4th intercostal space, left sternal margin.";
+      if (lead === "V4") return patientSex === "female" ? "Place V4 at the 5th intercostal space in the inframammary fold, under breast tissue." : "Place V4 at the 5th intercostal space, mid-clavicular line.";
+      if (lead === "V3") return "Place V3 directly midway between V2 and V4.";
+      if (lead === "V5") return "Place V5 horizontal to V4, on the anterior axillary line.";
+      if (lead === "V6") return "Place V6 horizontal to V4, on the mid-axillary line.";
+      if (lead === "RA") return "Place Right Arm lead on the right infraclavicular area.";
+      if (lead === "LA") return "Place Left Arm lead on the left infraclavicular area.";
+      if (lead === "RL") return "Place Right Leg ground lead on the right lower abdomen.";
+      if (lead === "LL") return "Place Left Leg lead on the left lower abdomen.";
+      return "";
+    }
+
+    function updateHUD() {
+      const hudL = document.getElementById('hudLead');
+      const hudD = document.getElementById('hudDetail');
+      const nBtn = document.getElementById('nextBtn');
+
+      if (currentStep < LEADS.length) {
+        const lead = LEADS[currentStep];
+        let note = "";
+        if (lead === "V1") note = "4th ICS, Right Sternal Margin";
+        else if (lead === "V2") note = "4th ICS, Left Sternal Margin";
+        else if (lead === "V4") note = patientSex === "female" ? "5th ICS at Inframammary Crease" : "5th ICS, Mid-Clavicular Line";
+        else if (lead === "V3") note = "Halfway between V2 and V4";
+        else if (lead === "V5") note = "Horizontal with V4, Anterior Axillary Line";
+        else if (lead === "V6") note = "Horizontal with V4, Mid-Axillary Line";
+        else if (lead === "RA") note = "Right Infraclavicular Fossa";
+        else if (lead === "LA") note = "Left Infraclavicular Fossa";
+        else if (lead === "RL") note = "Right Lower Abdomen / Flank";
+        else if (lead === "LL") note = "Left Lower Abdomen / Flank";
+
+        if (hudL) hudL.innerText = `Step ${currentStep + 1}/10: Lead ${lead}`;
+        if (hudD) hudD.innerText = note;
+        if (nBtn) {
+          nBtn.innerText = `Confirm ${lead}`;
+          nBtn.style.background = "#ff9800";
+        }
+      } else {
+        if (hudL) hudL.innerText = "Placement Verified";
+        if (hudD) hudD.innerText = "All 10 electrodes adapted to body metrics";
+        if (nBtn) {
+          nBtn.innerText = "Restart Test";
+          nBtn.style.background = "#4caf50";
+        }
+      }
+    }
+    updateHUD();
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      } catch(e) {}
+    }
+
+    function speakLeadGuidance(isInitial = false) {
+      if (currentStep < LEADS.length) {
+        const lead = LEADS[currentStep];
+        const instruction = getLeadInstruction(lead);
+        speak(isInitial ? `Starting placement. First: ${instruction}` : instruction);
+      } else {
+        speak("All ten leads verified and placed successfully.");
+      }
+    }
+
+    function initVoiceRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
+
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onend = () => {
+          try { recognition.start(); } catch(e) {}
+        };
+
+        recognition.onresult = (event) => {
+          const last = event.results.length - 1;
+          const transcript = event.results[last][0].transcript.trim().toLowerCase();
+
+          if (transcript.includes("next") || transcript.includes("confirm") || transcript.includes("done")) {
+            advanceLead();
+          } else if (transcript.includes("repeat") || transcript.includes("again") || transcript.includes("what")) {
+            speakLeadGuidance();
+          } else if (transcript.includes("reset") || transcript.includes("restart")) {
+            resetPlacement();
+          } else if (transcript.includes("female")) {
+            setSex('female
